@@ -10,7 +10,12 @@ export interface EncryptedFile {
   data: string;
 }
 
-const ITERATIONS = 600_000;
+/** Produktiver Wert. Nur Unit-Tests senken ihn (setIterationsForTests), damit sie schnell laufen. */
+export const DEFAULT_ITERATIONS = 600_000;
+let iterations = DEFAULT_ITERATIONS;
+/** Nur für Tests: weniger Runden. Beim Entschlüsseln gilt immer der Wert aus der Datei. */
+export function setIterationsForTests(n: number) { iterations = n; }
+export const currentIterations = () => iterations;
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
@@ -44,13 +49,13 @@ async function deriveKey(pass: string, salt: Uint8Array<ArrayBuffer>, iterations
 export async function encryptJSON(value: unknown, pass: string): Promise<EncryptedFile> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const key = await deriveKey(pass, salt, ITERATIONS);
+  const key = await deriveKey(pass, salt, iterations);
   const plain = enc.encode(JSON.stringify(value));
   const cipher = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plain));
   return {
     format: 'kopf-frei-backup',
     version: 1,
-    kdf: { name: 'PBKDF2-SHA256', iterations: ITERATIONS, salt: toB64(salt) },
+    kdf: { name: 'PBKDF2-SHA256', iterations, salt: toB64(salt) },
     cipher: { name: 'AES-256-GCM', iv: toB64(iv) },
     data: toB64(cipher),
   };
@@ -74,7 +79,6 @@ export async function decryptJSON<T>(file: EncryptedFile, pass: string): Promise
 
 export interface Sealed { iv: string; data: string }
 
-export const SYNC_ITERATIONS = ITERATIONS;
 export const randomSalt = () => toB64(crypto.getRandomValues(new Uint8Array(16)));
 
 /** Leitet den AES-Schlüssel aus der Passphrase ab. Nicht exportierbar: auch die App selbst kann ihn nicht auslesen. */

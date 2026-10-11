@@ -3,10 +3,19 @@ import { describe, expect, test } from 'bun:test';
 import * as C from '../../src/crypto';
 
 describe('Backup-Verschlüsselung', () => {
+  test("im Betrieb 600'000 PBKDF2-Runden (OWASP), echt einmal hin und zurück", async () => {
+    expect(C.DEFAULT_ITERATIONS).toBe(600_000);
+    C.setIterationsForTests(C.DEFAULT_ITERATIONS);
+    try {
+      const file = await C.encryptJSON({ x: 1 }, 'passphrase-123');
+      expect(file.kdf.iterations).toBe(600_000);
+      expect(await C.decryptJSON(file, 'passphrase-123')).toEqual({ x: 1 });
+    } finally { C.setIterationsForTests(1000); }
+  });
   test('Hin und zurück, mit Umlauten', async () => {
     const value = { text: 'Grüezi – Spass für Äpfel 🍎', n: [1, 2, 3] };
     const file = await C.encryptJSON(value, 'passphrase-123');
-    expect(file).toMatchObject({ format: 'kopf-frei-backup', version: 1, cipher: { name: 'AES-256-GCM' }, kdf: { name: 'PBKDF2-SHA256', iterations: 600_000 } });
+    expect(file).toMatchObject({ format: 'kopf-frei-backup', version: 1, cipher: { name: 'AES-256-GCM' }, kdf: { name: 'PBKDF2-SHA256', iterations: C.currentIterations() } });
     expect(await C.decryptJSON(file, 'passphrase-123')).toEqual(value);
   });
   test('jedes Mal neues Salz und neue IV', async () => {

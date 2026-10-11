@@ -1,0 +1,14 @@
+{
+ "version": "0.1.0",
+ "commit": "von Hand nachgebildet (aus tests/4-sync-kompatibilitaet-update.mjs): Format 1 ohne Feld v, unvollständige Einträge, Zusatzfeld und Ereignis einer neueren Version",
+ "erzeugt": "2026-10-11",
+ "aktionen": [],
+ "ansichten": { "inbox": ["Alter Eintrag mit Zusatzfeld"], "next": ["Belege scannen"], "projects": ["Steuererklärung"] },
+ "ereignisse": [
+  { "id": "e1", "ts": 1759300000000, "device": "alt", "type": "context.add", "data": { "name": "@Telefon" } },
+  { "id": "e2", "ts": 1759300000001, "device": "alt", "type": "project.create", "data": { "id": "p1", "title": "Steuererklärung", "outcome": "", "status": "active", "created": 1759300000000, "updated": 1759300000000, "completed": null } },
+  { "id": "e3", "ts": 1759300000002, "device": "alt", "type": "item.create", "data": { "id": "i1", "title": "Belege scannen", "notes": "", "list": "next", "context": "@Telefon", "projectId": "p1", "waitingFor": null, "tickler": null, "created": 1759300000000, "updated": 1759300000000, "completed": null } },
+  { "id": "e4", "ts": 1759300000003, "device": "alt", "type": "item.create", "data": { "id": "i2", "title": "Alter Eintrag mit Zusatzfeld", "list": "inbox", "energie": "hoch" } },
+  { "id": "e5", "ts": 1759300000004, "device": "neu", "type": "zukunft.ereignis", "data": { "irgendwas": 1 } }
+ ]
+}

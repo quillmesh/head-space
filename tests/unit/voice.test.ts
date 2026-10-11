@@ -1,5 +1,5 @@
 // Spracheingabe mit simulierter Spracherkennung des Browsers
-import { beforeEach, describe, expect, test } from 'bun:test';
+import { beforeEach, describe, expect, test, jest } from 'bun:test';
 
 // Simulierte SpeechRecognition: Verhalten pro Test über `behaviour` steuerbar
 type Behaviour = 'ok' | 'silent' | 'aborted' | 'throw';
@@ -97,10 +97,18 @@ describe('Offline-Verfügbarkeit', () => {
     expect(await V.localAvailability()).toBe('available');
     expect(calls).toBe(1);
   });
-  test('hängende Abfrage: nach 3 Sekunden „unbekannt“', async () => {
+  test('hängende Abfrage: nach 3 Sekunden „unbekannt“ (simulierte Uhr)', async () => {
     availableImpl = () => new Promise(() => {});
-    expect(await V.localAvailability()).toBe('unknown');
-  }, 5000);
+    jest.useFakeTimers();
+    try {
+      let done = false;
+      const p = V.localAvailability().then((r) => { done = true; return r; });
+      jest.advanceTimersByTime(2900); await Promise.resolve();
+      expect(done).toBe(false);
+      jest.advanceTimersByTime(100);
+      expect(await p).toBe('unknown');
+    } finally { jest.useRealTimers(); }
+  });
   test('Absturzschutz: nach abgebrochener Abfrage wird nicht mehr gefragt', async () => {
     let calls = 0;
     availableImpl = async () => { calls++; return 'available'; };

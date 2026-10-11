@@ -16,3 +16,10 @@ g.document = {
 };
 g.matchMedia = () => ({ matches: false });
 if (!g.navigator) g.navigator = {};
+
+// Schnelle Unit-Tests: wenige PBKDF2-Runden und keine Wartezeit bei Wiederholungen.
+// Der produktive Wert (600'000) wird in crypto.test.ts einmal echt geprüft.
+const C = await import('../../src/crypto');
+C.setIterationsForTests(1000);
+const Sync = await import('../../src/sync');
+Sync.timing.retryMs = 0;

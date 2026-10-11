@@ -1,0 +1,50 @@
+{
+ "items": [
+  {
+   "title": "Belege scannen",
+   "notes": "",
+   "list": "next",
+   "context": "@Telefon",
+   "projectId": "p1",
+   "waitingFor": null,
+   "tickler": null,
+   "due": null,
+   "completed": null,
+   "prevList": null,
+   "order": null,
+   "id": "i1",
+   "created": 1759300000000
+  },
+  {
+   "title": "Alter Eintrag mit Zusatzfeld",
+   "notes": "",
+   "list": "inbox",
+   "context": null,
+   "projectId": null,
+   "waitingFor": null,
+   "tickler": null,
+   "due": null,
+   "completed": null,
+   "prevList": null,
+   "order": null,
+   "id": "i2",
+   "energie": "hoch",
+   "created": 1759300000003
+  }
+ ],
+ "projects": [
+  {
+   "title": "Steuererklärung",
+   "outcome": "",
+   "status": "active",
+   "due": null,
+   "completed": null,
+   "sequential": false,
+   "id": "p1",
+   "created": 1759300000000
+  }
+ ],
+ "contexts": [
+  "@Telefon"
+ ]
+}

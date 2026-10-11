@@ -1,11 +1,13 @@
 {
   "name": "kopf-frei",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "private": true,
   "description": "Persönliche Aufgabenverwaltung nach Getting Things Done",
   "scripts": {
     "build": "bun run build.mjs",
     "check": "tsc -p .",
-    "test": "bun test"
+    "test": "bun test",
+    "e2e": "playwright test",
+    "alles": "tests/run.sh"
   }
 }

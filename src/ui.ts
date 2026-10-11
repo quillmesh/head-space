@@ -2092,3 +2092,6 @@ export function mount() {
   S.onError((m) => toast(m, 'error'));
   render();
 }
+
+/** Nur für Unit-Tests (tests/unit/karten.test.ts): Karten-HTML ohne Browser prüfen. */
+export const renderForTests = { row, projectRow };

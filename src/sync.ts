@@ -11,7 +11,7 @@
 
 import * as db from './db';
 import * as S from './store';
-import { SYNC_ITERATIONS, b64ToText, randomSalt, seal, syncKeyFromPassphrase, textToB64, unseal, type Sealed } from './crypto';
+import { currentIterations, b64ToText, randomSalt, seal, syncKeyFromPassphrase, textToB64, unseal, type Sealed } from './crypto';
 import type { GtdEvent } from './types';
 import { IS_TEST } from './env';
 
@@ -94,6 +94,9 @@ async function readFile(c: SyncConfig, path: string): Promise<string | null> {
   }
 }
 
+/** Wartezeiten; Unit-Tests setzen sie auf 0. */
+export const timing = { retryMs: 600 };
+
 async function createFile(c: SyncConfig, path: string, text: string, message: string) {
   const body = JSON.stringify({ message, content: textToB64(text), branch: c.branch });
   for (let attempt = 0; ; attempt++) {
@@ -101,7 +104,7 @@ async function createFile(c: SyncConfig, path: string, text: string, message: st
       return await gh(c, `${repoPath(c)}/contents/${path}`, { method: 'PUT', body });
     } catch (err) {
       // 409: ein anderes Gerät hat im selben Moment geschrieben. Kurz warten, nochmals versuchen.
-      if (err instanceof GitHubError && err.status === 409 && attempt < 3) { await new Promise((r) => setTimeout(r, 600 * (attempt + 1))); continue; }
+      if (err instanceof GitHubError && err.status === 409 && attempt < 3) { await new Promise((r) => setTimeout(r, timing.retryMs * (attempt + 1))); continue; }
       throw err;
     }
   }
@@ -155,10 +158,11 @@ export async function connect(owner: string, repo: string, token: string, pass: 
   let header = p.header;
   if (!header) {
     const salt = randomSalt();
-    const k = await syncKeyFromPassphrase(pass, salt, SYNC_ITERATIONS);
+    const iterations = currentIterations();
+    const k = await syncKeyFromPassphrase(pass, salt, iterations);
     header = {
       format: 'kopf-frei-sync', version: 1,
-      kdf: { name: 'PBKDF2-SHA256', iterations: SYNC_ITERATIONS, salt },
+      kdf: { name: 'PBKDF2-SHA256', iterations, salt },
       check: await seal(k, CHECK_TEXT), created: Date.now(),
     };
     try {

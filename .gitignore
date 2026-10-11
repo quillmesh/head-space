@@ -5,3 +5,5 @@ node_modules/
 kopf-frei-backup-*.json
 dist-test/
 site/
+test-results/
+playwright-report/

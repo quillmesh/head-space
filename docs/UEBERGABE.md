@@ -52,11 +52,14 @@ Zuerst `CLAUDE.md` lesen: Regeln, Ablauf, **erst fragen, dann umsetzen**.
 ## Praktische Hinweise für die Arbeit hier
 - **Tests lokal:**
   ```
-  PLAYWRIGHT_MODULE=/home/claude/.npm-global/lib/node_modules/playwright/index.mjs PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers tests/run.sh [Nummern]
+  PLAYWRIGHT_MODULE=/home/claude/.npm-global/lib/node_modules/playwright/index.mjs PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers tests/run.sh [Dateinamen aus e2e/]
   ```
-  WebKit läuft nur auf GitHub (`E2E_WEBKIT=1`).
+  WebKit läuft nur auf GitHub (`E2E_WEBKIT=1`). npm ist aus der Sandbox gesperrt; `playwright` (enthält `playwright/test`) ist global vorhanden,
+  `tests/run.sh` verlinkt es nach `node_modules/`. Die Sandbox hat nur 2 Kerne.
+- **Testkonzept:** `docs/TESTKONZEPT.md` (seit 0.10.1, Playwright Test in `e2e/`, Zufallstests, alte Daten).
 - **Die veröffentlichte Seite prüfen:** github.io ist aus der Sandbox nicht per curl erreichbar. Mit WebFetch geht es, mit angehängtem `?x=…`, damit kein Cache greift.
 - **CI-Lauf abwarten:** über die Run-ID des eigenen Commits (`headSha`). Die Logs sind nicht lesbar, nur die Anmerkungen (annotations).
 - **Server beenden:** nicht mit `pkill -f "http.server …"`. Das Muster trifft die eigene Shell.
 - **Simuliertes GitHub in den Tests:** braucht eindeutige SHA-1 pro Datei. Früher führte ein Präfix des Pfads dazu, dass Pakete verwechselt wurden.
-- **Laufzeit:** Der volle Testlauf dauert lokal etwa 2 Minuten, auf GitHub etwa 3½ Minuten (mit WebKit und Knopf-Test).
+- **Laufzeit:** Unit unter 1 s; End-to-End lokal etwa 2 Minuten. Solange die alten Tests auf GitHub mitlaufen, dauert ein Lauf dort entsprechend länger.
+- **CI-Fehler:** Bericht und Traces als Artifact „playwright-bericht“ (zusätzlich zu den Anmerkungen).

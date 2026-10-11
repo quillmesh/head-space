@@ -43,6 +43,8 @@ jobs:
         run: bunx -p typescript@5.8.3 tsc -p .
       - name: Unit-Tests
         run: bun test
+        env:
+          CI: 'true'
       # Browser zwischenspeichern: spart bei jedem Lauf den Download von Chromium
       - name: Playwright-Browser aus dem Zwischenspeicher
         id: pw-cache
@@ -60,7 +62,24 @@ jobs:
             npx playwright install --with-deps chromium webkit
           fi
       - name: End-to-End-Tests
-        run: tests/run.sh --nur-e2e
+        run: npx playwright test
+        env:
+          E2E_WEBKIT: '1'
+      # Bei einem Fehler: Bericht und Traces zum Herunterladen (Actions → Lauf → Artifacts).
+      # Trace ansehen: https://trace.playwright.dev (Datei hineinziehen; bleibt im Browser)
+      - name: Bericht und Traces sichern
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-bericht
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+      # Übergang: die alten End-to-End-Tests laufen weiter, bis der Nutzer die Zuordnung alt → neu bestätigt hat
+      - name: End-to-End-Tests (alt, Übergang)
+        if: ${{ !cancelled() }}
+        run: tests/run-alt.sh --nur-e2e
         env:
           E2E_WEBKIT: '1'
 

@@ -52,10 +52,10 @@ Die App lädt keinen fremden Code (keine Abhängigkeiten) und erlaubt per Conten
 
 ```bash
 bun run build.mjs   # baut dist/ und preview/kopf-frei.html
-bun test            # Unit-Tests (Logik, Daten, Kompatibilität, Verschlüsselung, Sync, Sprache)
-tests/run.sh        # alles: Typen, Unit-Tests, End-to-End-Tests (Playwright + Chromium, parallel)
-tests/run.sh 3 10   # Typen, Unit-Tests und nur die End-to-End-Tests 3 und 10 (GitHub prüft immer alles)
-E2E_WEBKIT=1 tests/run.sh   # zusätzlich mit WebKit (Safari-Kern), so läuft es auf GitHub
+bun test            # Unit-Tests in 1 s (Logik, Darstellung, alte Daten, Sync-Zufallstests, Verschlüsselung)
+tests/run.sh        # alles: Typen, Unit-Tests, End-to-End-Tests (Playwright Test, Ordner e2e/)
+tests/run.sh projekte sync   # Typen, Unit und nur e2e/projekte.spec.mjs und e2e/sync.spec.mjs
+E2E_WEBKIT=1 tests/run.sh    # zusätzlich WebKit (Safari-Kern) für @webkit-Tests, so läuft es auf GitHub
 ```
 
 Jeder Push wird zuerst vollständig getestet und nur bei Erfolg veröffentlicht (GitHub Actions → GitHub Pages):
@@ -72,7 +72,7 @@ Die Daten sind ein **Ereignis-Log**: Jede Änderung ist ein Ereignis, der Zustan
 4. **Unbekannte Felder und Ereignistypen bleiben erhalten**, damit ältere App-Versionen auf anderen Geräten nichts kaputt machen.
 5. Datenbank-Upgrades (`DB_VERSION` in `src/db.ts`) sind **nur additiv**: neue Speicher anlegen, nie löschen.
 6. Das Sync-Format (`kopf-frei.json`, `events/*.json`) hat eine Versionsnummer. Eine ältere App lehnt neuere Formate ab, statt sie falsch zu lesen.
-7. Für jede Erweiterung einen Test mit **Altdaten** ergänzen (siehe `tests/4-sync-kompatibilitaet-update.mjs`).
+7. Nach jeder Version ihre echten Daten einfrieren (`node scripts/alte-daten-einfrieren.mjs <commit> <version>`); `tests/unit/alte-daten.test.ts` prüft, dass jede neue Version sie genau so liest.
 
 ### Aufbau
 
@@ -89,6 +89,7 @@ src/
   main.ts     Start, Service Worker, Update-Hinweis
   styles.css, cards.css   Gestaltung
 public/       Manifest, Service Worker, Icons
-tests/        End-to-End-Tests (Playwright)
+tests/unit/   Unit-Tests (bun test), alte Datenstände in tests/unit/alte-daten/
+e2e/          End-to-End-Tests (Playwright Test), Aufbau in docs/TESTKONZEPT.md
 .github/workflows/veroeffentlichen.yml   Build und Veröffentlichung
 ```

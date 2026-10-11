@@ -17,18 +17,27 @@ Zu Beginn einer neuen Unterhaltung auch `docs/UEBERGABE.md` lesen (Stand, offene
 - `DB_VERSION` nur erhöhen für neue Object Stores (additiv).
 - Keine externen Abhängigkeiten zur Laufzeit; CSP in `build.mjs` nicht lockern.
 
-## Tests (Pflicht)
-- Jede Funktion hat **Unit-Tests** (`tests/unit/*.test.ts`, `bun test`) für die Logik und, wo es um Bedienung geht, **End-to-End-Tests** (`tests/[0-9]-*.mjs`, Playwright).
+## Tests (Pflicht) – Aufbau und Begründung in `docs/TESTKONZEPT.md`
+- Jede Funktion hat **Unit-Tests** (`tests/unit/*.test.ts`, `bun test`, < 2 s) für die Logik und, wo es um Bedienung geht,
+  **End-to-End-Tests** (`e2e/<funktion>.spec.mjs`, Playwright Test). Neue Prüfungen in die Datei der Funktion, nicht nach Version.
 - Neue oder geänderte Funktion → zuerst Test schreiben, der ohne die Änderung fehlschlägt.
-- Bedienung auf dem Handy mit **echten Touch-Ereignissen** testen (`tap()`, `hasTouch: true`), nicht nur mit Mausklicks.
+- Bedienung auf dem Handy mit **echten Touch-Ereignissen** testen (`tap()`, Geräte `HANDY`/`IPAD` aus `e2e/fixtures.mjs`).
+- **Keine festen Wartezeiten** (`waitForTimeout`): selbst wartende `expect(...)`, für Zeitabläufe `page.clock`
+  (Unit: `setSystemTime`/`jest.useFakeTimers`). Ausnahme nur mit Begründung im Kommentar.
+- Daten in Tests **relativ zu heute** (`iso(n)`), nie feste Kalenderdaten.
+- Darstellung ohne CSS (welches Symbol, welche Farbstufe) in `tests/unit/karten.test.ts`; Farben/Ausrichtung in `e2e/darstellung.spec.mjs`.
+- Sync-Regeln: `tests/unit/sync-zufall.test.ts` (Zufallsabläufe auf zwei Geräten). Neue Regel → dort als Prüfung ergänzen.
+- Alte Daten: nach jeder freigegebenen Version `node scripts/alte-daten-einfrieren.mjs <commit> <version>` und die Datei einchecken.
 - Logik gehört in `src/logic.ts`, `store.ts`, `sync.ts` usw., nicht in `ui.ts`, damit sie ohne Browser testbar ist.
 - GitHub Actions führt alle Tests vor dem Veröffentlichen aus; schlägt einer fehl, wird nichts veröffentlicht.
+  Bei Fehlern liegen Bericht und Traces als Artifact „playwright-bericht“ am Lauf.
+- Übergang: Die alten Tests (`tests/[0-9]-*.mjs`, `tests/run-alt.sh`) laufen auf GitHub noch mit, bis der Nutzer die Zuordnung bestätigt.
 
 ## Umgebungen
 - **Live** = Branch `main` → https://wuscha93.github.io/head-space/ (echte Daten, Sync mit `head-space-data`)
 - **Test** = Branch `test` → https://wuscha93.github.io/head-space/test/ (eigene Datenbank, Beispieldaten, **kein Sync**)
 - Beide liegen auf derselben Domain. Alles, was im Browser gespeichert wird, ist über `src/env.ts` getrennt
-  (Datenbankname, localStorage-Schlüssel, Cache-Präfix, Service-Worker-Bereich). Daran nichts ändern, ohne Test 6 zu erweitern.
+  (Datenbankname, localStorage-Schlüssel, Cache-Präfix, Service-Worker-Bereich). Daran nichts ändern, ohne `e2e/umgebungen.spec.mjs` zu erweitern.
 
 ## Ablauf
 1. Ändern **auf Branch `test`**, dann `tests/run.sh` (Typen + Unit + End-to-End; alle müssen bestehen).

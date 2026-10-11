@@ -1,2 +1,4 @@
 [test]
 preload = ["./tests/unit/setup.ts"]
+# Nur Unit-Tests; e2e/*.spec.mjs gehören Playwright
+root = "./tests/unit"
