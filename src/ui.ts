@@ -3,7 +3,6 @@
 // Klicks und Formulare laufen über data-action / data-form (Event-Delegation).
 
 import * as S from './store';
-import * as V from './voice';
 import * as Sync from './sync';
 import { IS_TEST, storageKey } from './env';
 import { seedSample } from './sample';
@@ -46,9 +45,7 @@ type Modal =
   | { kind: 'confirm'; text: string; label: string; run: () => void }
   | { kind: 'next-step'; projectId: string; fromId: string }
   | { kind: 'due'; id: string; target: 'item' | 'project' }
-  | { kind: 'conflict'; id: string }
-  | { kind: 'voice-consent'; target: string; back: Modal }
-  | { kind: 'voice-install'; target: string; back: Modal };
+  | { kind: 'conflict'; id: string };
 let modal: Modal = null;
 
 // ---------- Navigation ----------
@@ -227,13 +224,6 @@ function projectRow(p: Project, status: string, icon = false): string {
     </div>`, false);
 }
 
-const MIC_SVG = `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
-function mic(target: string): string {
-  if (!V.enabled()) return '';
-  const on = V.activeTarget === target;
-  return `<button type="button" class="btn mic${on ? ' is-listening' : ''}" data-action="voice" data-target="${target}" aria-pressed="${on}" aria-label="${on ? 'Aufnahme beenden' : 'Spracheingabe'}" title="Spracheingabe">${MIC_SVG}</button>`;
-}
-
 const list = (items: Item[], opts: RowOpts = {}) => `<ul class="rows">${items.map((i) => row(i, opts)).join('')}</ul>`;
 
 const head = (title: string, lede: string, extra = '') =>
@@ -267,7 +257,6 @@ function viewInbox(): string {
     <form class="capture" data-form="capture">
       <label class="sr-only" for="capture-input">Neuer Eintrag</label>
       <input id="capture-input" name="title" placeholder="Was beschäftigt dich gerade?" autocomplete="off" enterkeyhint="done">
-      ${mic('capture-input')}
       <button class="btn primary" type="submit">Erfassen</button>
     </form>
     ${n ? `<div class="callout"><span><strong class="num">${n}</strong> ${n === 1 ? 'Eintrag' : 'Einträge'} zu klären</span><button class="btn primary" data-action="clarify-first">Klären starten</button></div>` : ''}
@@ -369,7 +358,6 @@ function viewProject(id: string): string {
     <form class="capture compact" data-form="project-step" data-id="${p.id}">
       <label class="sr-only" for="step-input">Nächster Schritt</label>
       <input id="step-input" name="title" placeholder="Nächster Schritt, z. B. „Offerte bei Maler anfragen“" autocomplete="off" required>
-      ${mic('step-input')}
       <span class="step-due">
         <button type="button" class="btn step-due-btn" data-action="step-due-pick" aria-label="Frist wählen" title="Frist wählen">${FLAG_SVG}<span class="step-due-text"></span></button>
         <input type="date" id="step-due" name="due" class="step-due-input" tabindex="-1" aria-label="Frist">
@@ -584,32 +572,6 @@ function viewSettings(): string {
 
     ${syncPanel()}
 
-    ${V.enabled() ? `<section class="panel">
-      <h2>Spracheingabe</h2>
-      <p class="hint">Tipp auf das Mikrofon neben einem Eingabefeld und sprich. Der Text landet im Feld, du bestätigst mit „Erfassen“.</p>
-      <dl class="facts">
-        <dt>Erkennung auf dem Gerät</dt><dd id="voice-state">wird geprüft …</dd>
-        ${V.lastIssue.at ? `<dt>Letztes Problem</dt><dd class="mono">${esc(V.lastIssue.code)} · ${esc(V.lastIssue.mode)} · ${new Date(V.lastIssue.at).toLocaleTimeString('de-CH')}</dd>` : ''}
-      </dl>
-      <label class="toggle" for="voice-cloud">
-        <input type="checkbox" id="voice-cloud" ${S.info.voiceCloud ? 'checked' : ''}>
-        <span>Online-Erkennung des Browsers erlauben, wenn es auf dem Gerät nicht geht<small>Die Aufnahme geht dann an den Browser-Anbieter (Google, Microsoft oder Apple).</small></span>
-      </label>
-      <details class="help" id="voice-diag" ${voiceDiagOpen ? 'open' : ''}>
-        <summary>Spracheingabe testen</summary>
-        <p class="hint">Tipp auf einen Knopf und sag einen kurzen Satz. Darunter erscheint, was der Browser Schritt für Schritt meldet. Bei Problemen: Screenshot davon an Claude schicken.</p>
-        <div class="actions-row">
-          <button type="button" class="btn small" data-action="voice-test" data-mode="online">Online testen</button>
-          <button type="button" class="btn small" data-action="voice-test" data-mode="offline">Offline testen</button>
-          <button type="button" class="btn small" data-action="voice-variants">Varianten testen</button>
-        </div>
-        ${V.browserBlocked() ? '<p class="hint">Der Mikrofon-Knopf öffnet zurzeit die Tastatur, weil der Browser die Erkennung blockiert hat. Ein erfolgreicher Test hier schaltet das wieder um.</p>' : ''}
-        <label class="sr-only" for="voice-test-input">Erkannter Text</label>
-        <input id="voice-test-input" readonly placeholder="Hier erscheint der erkannte Text">
-        <pre class="voice-log" id="voice-log">${esc(voiceDiagText())}</pre>
-      </details>
-    </section>` : ''}
-
     <section class="panel">
       <h2>Verschlüsseltes Backup</h2>
       <p class="hint">Das Backup wird hier im Gerät mit deiner Passphrase verschlüsselt (AES-256-GCM). Ohne Passphrase ist die Datei unlesbar, auch für dich. Bewahr die Passphrase sicher auf, z. B. im Passwortmanager.</p>
@@ -700,7 +662,6 @@ function renderModal() {
   const root = document.getElementById('modal')!;
   if (!modal) {
     root.hidden = true; root.innerHTML = ''; document.body.classList.remove('has-modal');
-    if (V.activeTarget && !document.getElementById(V.activeTarget)) V.stop();
     return;
   }
   root.hidden = false;
@@ -715,45 +676,18 @@ function renderModal() {
       <label class="sr-only" for="quick-input">Neuer Eintrag</label>
       <div class="capture compact">
         <input id="quick-input" name="title" placeholder="Was beschäftigt dich?" autocomplete="off" required enterkeyhint="done">
-        ${mic('quick-input')}
       </div>
       <div class="actions-row end"><button class="btn primary" type="submit">Erfassen</button></div>
     </form>`;
   else if (modal.kind === 'next-step') html = nextStepHtml(modal.projectId, modal.fromId);
   else if (modal.kind === 'due') html = dueHtml(modal.id, modal.target);
   else if (modal.kind === 'conflict') html = conflictHtml(modal.id);
-  else if (modal.kind === 'voice-consent' && V.lastAvailability() === 'available') html = `
-    <div class="sheet">
-      <div class="sheet-head"><h2>Spracheingabe bereit</h2><button type="button" class="link" data-action="voice-cancel">Abbrechen</button></div>
-      <p>Dieses Gerät erkennt Deutsch direkt auf dem Gerät. Deine Stimme verlässt es nicht.</p>
-      <div class="actions-row end"><button class="btn primary" data-action="voice-local">Aufnahme starten</button></div>
-    </div>`;
-  else if (modal.kind === 'voice-consent') html = `
-    <div class="sheet">
-      <div class="sheet-head"><h2>Spracheingabe online?</h2><button type="button" class="link" data-action="voice-cancel">Abbrechen</button></div>
-      <p>Dieser Browser kann Deutsch nicht direkt auf dem Gerät erkennen. Wenn du fortfährst, schickt er deine Aufnahme zur Erkennung an seinen Anbieter, bei Chrome an Google, bei Edge an Microsoft, bei Safari an Apple.</p>
-      <p class="hint">Die App selbst speichert keine Aufnahmen und sendet nichts. Du kannst das jederzeit in den Einstellungen ändern. Alternativ geht das Mikrofon auf der Bildschirmtastatur; auch das arbeitet je nach Gerät online.</p>
-      <div class="actions-row end">
-        <button class="btn" data-action="voice-once">Nur dieses Mal</button>
-        <button class="btn primary" data-action="voice-always">Immer erlauben</button>
-      </div>
-    </div>`;
-  else if (modal.kind === 'voice-install') html = `
-    <div class="sheet">
-      <div class="sheet-head"><h2>Offline-Spracherkennung</h2><button type="button" class="link" data-action="voice-cancel">Abbrechen</button></div>
-      <p>Dein Browser kann Deutsch auch direkt auf dem Gerät erkennen. Dafür lädt er einmalig ein Sprachpaket herunter. Danach verlässt deine Stimme das Gerät nicht mehr.</p>
-      <div class="actions-row end">
-        <button class="btn" data-action="voice-skip-install">Ohne Paket fortfahren</button>
-        <button class="btn primary" data-action="voice-install-go"${busy ? ' disabled' : ''}>${busy ? 'Lädt …' : 'Sprachpaket laden'}</button>
-      </div>
-    </div>`;
   else if (modal.kind === 'confirm') html = `
     <div class="sheet">
       <p>${esc(modal.text)}</p>
       <div class="actions-row end"><button class="btn" data-action="close">Abbrechen</button><button class="btn danger" data-action="confirm">${esc(modal.label)}</button></div>
     </div>`;
   root.innerHTML = `<div class="scrim" data-action="close"></div><div class="modal-box" role="dialog" aria-modal="true">${html}</div>`;
-  if (V.activeTarget && !document.getElementById(V.activeTarget)) V.stop();
   // Datumsfelder nie automatisch fokussieren: iPad und Android öffnen sonst sofort den Kalender
   const first = root.querySelector<HTMLElement>('[autofocus], input:not([type=hidden]):not([type=checkbox]):not([type=date]):not([type=datetime-local]), button.primary');
   first?.focus();
@@ -888,7 +822,6 @@ function nextStepHtml(pid: string, fromId: string): string {
         <label for="ns-title">Nächster Schritt</label>
         <div class="capture compact">
           <input id="ns-title" name="title" placeholder="Die nächste sichtbare, physische Handlung" autocomplete="off" required>
-          ${mic('ns-title')}
         </div>
       </div>
       <div class="grid3">
@@ -998,116 +931,6 @@ function finishClarify(patch: Partial<Item>, message: string, onUndo?: () => voi
   // damit der Zähler „x von y“ schon stimmt
   patchWithUndo(m.id, { title, ...patch }, message, onUndo);
   if (!done) startClarify(rest[0].id, true);
-}
-
-// ---------- Spracheingabe ----------
-
-let voiceBase = '';
-let onVoiceDone: (() => void) | null = null;
-
-function updateMicButtons() {
-  document.querySelectorAll<HTMLButtonElement>('.mic').forEach((b) => {
-    const on = b.dataset.target === V.activeTarget;
-    b.classList.toggle('is-listening', on);
-    b.setAttribute('aria-pressed', String(on));
-    b.setAttribute('aria-label', on ? 'Aufnahme beenden' : 'Spracheingabe');
-  });
-}
-
-/**
- * Mikrofon-Knopf gedrückt: offline wenn möglich, sonst nur mit Erlaubnis online.
- * Wichtig: Die Aufnahme muss direkt im Tipp starten (ohne vorheriges Warten),
- * sonst brechen mobile Browser sie sofort wieder ab. Deshalb wird die Offline-
- * Verfügbarkeit vorab im Hintergrund geprüft und hier nur noch nachgeschaut.
- */
-function startVoice(target: string) {
-  if (V.activeTarget) { V.stop(); return; }
-  if (!V.supported()) {
-    toast('Dieser Browser kann keine Sprache erkennen. Nutze das Mikrofon auf deiner Bildschirmtastatur.', 'error');
-    return;
-  }
-  if (V.browserBlocked() && V.lastAvailability() !== 'available') {
-    // Chrome verweigert die Erkennung auf diesem Gerät: Tastatur öffnen (im Tipp, damit sie wirklich aufgeht)
-    const input = document.getElementById(target) as HTMLInputElement | null;
-    input?.focus();
-    toast('Sprich über das Mikrofon deiner Tastatur. Die Spracherkennung des Browsers ist auf diesem Gerät blockiert.');
-    return;
-  }
-  const avail = V.lastAvailability();
-  // Noch nie geprüft: im Hintergrund nachschauen. Der Dialog passt sich an, sobald das Ergebnis da ist.
-  if (avail === null) {
-    void V.localAvailability().then((a) => {
-      if (modal?.kind !== 'voice-consent') return;
-      if (a === 'downloadable' || a === 'downloading') modal = { kind: 'voice-install', target: modal.target, back: modal.back };
-      renderModal();
-    });
-  }
-  if (avail === 'available') { beginVoice(target, true); return; }
-  if (avail === 'downloadable' || avail === 'downloading') { modal = { kind: 'voice-install', target, back: modal }; renderModal(); return; }
-  if (S.info.voiceCloud) { beginVoice(target, false); return; }
-  modal = { kind: 'voice-consent', target, back: modal };
-  renderModal();
-}
-
-function beginVoice(target: string, local: boolean) {
-  const input = document.getElementById(target) as HTMLInputElement | null;
-  if (!input) return;
-  voiceBase = input.value.trim();
-  const diag = target === 'voice-test-input';
-  const placeholder = input.placeholder;
-  const setPlaceholder = (t: string) => { const el = document.getElementById(target) as HTMLInputElement | null; if (el) el.placeholder = t; };
-  const ok = V.start(target, local, {
-    onText: (text) => {
-      const el = document.getElementById(target) as HTMLInputElement | null;
-      if (el) el.value = voiceBase ? `${voiceBase} ${text}` : text;
-    },
-    onEnd: (gotText, errored, heard) => {
-      setPlaceholder(placeholder);
-      updateMicButtons();
-      onVoiceDone?.();
-      if (heard && !local) V.markBrowserBlocked(false); // Online geht wieder: Mikrofon-Knopf normal
-      if (diag) return; // Test in den Einstellungen: nur protokollieren
-      if (gotText) { document.getElementById(target)?.focus(); return; }
-      if (local && !heard) {
-        // Offline-Erkennung funktioniert auf diesem Gerät nicht: ab jetzt online (mit Erlaubnis)
-        V.markLocalBroken();
-        if (S.info.voiceCloud) {
-          toast('Offline-Erkennung geht hier nicht. Versuche es online …');
-          beginVoice(target, false);
-        } else {
-          modal = { kind: 'voice-consent', target, back: modal };
-          renderModal();
-        }
-        return;
-      }
-      if (errored) return; // Meldung kam schon aus onError
-      toast('Es wurde nichts erkannt. Tipp aufs Mikrofon und sprich gleich los.', 'error');
-    },
-    onError: (code, heard) => {
-      if (diag) return;
-      // Offline ohne Aufnahme abgebrochen: onEnd wechselt still auf online, keine Fehlermeldung
-      if (local && !heard) return;
-      if (!local && !heard && (code === 'aborted' || code === 'service-not-allowed' || code === 'network')) {
-        // Browser verweigert sofort: ab jetzt direkt die Tastatur anbieten
-        V.markBrowserBlocked();
-        toast(`Der Browser lässt die Spracherkennung hier nicht zu (${code}). Tipp ins Feld und nutze das Mikrofon deiner Tastatur. Ab jetzt öffnet der Mikrofon-Knopf direkt die Tastatur.`, 'error');
-        return;
-      }
-      toast(`${V.ERRORS[code] ?? 'Die Spracheingabe hat nicht geklappt.'} (${code})`, 'error');
-    },
-  });
-  if (!ok) toast('Die Spracheingabe konnte nicht starten.', 'error');
-  else setPlaceholder('Sprich jetzt …');
-  updateMicButtons();
-}
-
-/** Nach einem Zwischendialog (Erlaubnis, Sprachpaket) zurück zum vorherigen Dialog und Aufnahme starten. */
-function resumeVoice(local: boolean) {
-  if (modal?.kind !== 'voice-consent' && modal?.kind !== 'voice-install') return;
-  const { target, back } = modal;
-  modal = back;
-  renderModal();
-  beginVoice(target, local);
 }
 
 // ---------- Wischen zum Löschen ----------
@@ -1433,7 +1256,7 @@ export function render() {
     if (f && main.contains(f) && f.value !== v) { f.value = v; if (f.classList.contains('step-due-input')) showStepDue(f); }
   });
   if (keepId) document.getElementById(keepId)?.focus();
-  if (route.view === 'settings') { updatePersistState(); updateVoiceState(); void updateRestorePoints(); }
+  if (route.view === 'settings') { updatePersistState(); void updateRestorePoints(); }
 }
 
 // ---------- Zurück auf früheren Stand ----------
@@ -1469,73 +1292,6 @@ async function doRewind(ts: number) {
   if (!n) { toast('Es gab nichts zurückzusetzen.'); return; }
   render();
   showUndo(`Früherer Stand wiederhergestellt (${n} ${n === 1 ? 'Eintrag' : 'Einträge'})`, () => { void S.rewindTo(before).then(() => { render(); toast('Wieder wie vorher.'); }); });
-}
-
-let voiceDiagOpen = false;
-let voiceEnv: string[] = [];
-let variantLog: string[] = [];
-function voiceDiagText(): string {
-  if (variantLog.length) return [...voiceEnv, '', ...variantLog, ...(V.log.length ? V.log : [])].join('\n');
-  return [...voiceEnv, ...(V.log.length ? ['', 'Letzte Aufnahme:', ...V.log] : [])].join('\n');
-}
-
-const VARIANTS: [string, V.Variant][] = [
-  ['Standard', {}],
-  ['Fortlaufend', { continuous: true }],
-  ['Ohne Zwischenergebnisse', { interim: false }],
-  ['Sprache de-CH', { lang: 'de-CH' }],
-  ['Sprache de', { lang: 'de' }],
-];
-
-/** Probiert nacheinander mehrere Einstellungen der Online-Erkennung und protokolliert alles. */
-function runVoiceVariants(i = 0, okCount = 0) {
-  if (i === 0) variantLog = [];
-  if (i >= VARIANTS.length) {
-    variantLog.push('', okCount ? `Ergebnis: ${okCount} von ${VARIANTS.length} Varianten haben etwas aufgenommen.` : 'Ergebnis: Keine Variante kam bis zum Mikrofon (audiostart).');
-    if (okCount) V.markBrowserBlocked(false);
-    refreshVoiceLog();
-    return;
-  }
-  const [name, variant] = VARIANTS[i];
-  if (i > 0) variantLog.push(...V.log);
-  variantLog.push('', `— Variante ${i + 1}: ${name} —`);
-  const input = document.getElementById('voice-test-input') as HTMLInputElement | null;
-  if (input) input.value = '';
-  const ok = V.start('voice-test-input', false, {
-    onText: (t) => { const el = document.getElementById('voice-test-input') as HTMLInputElement | null; if (el) el.value = t; },
-    onError: () => {},
-    onEnd: (_g, _e, heard) => {
-      refreshVoiceLog();
-      setTimeout(() => runVoiceVariants(i + 1, okCount + (heard ? 1 : 0)), 400);
-    },
-  }, variant);
-  if (!ok) setTimeout(() => runVoiceVariants(i + 1, okCount), 100);
-  refreshVoiceLog();
-}
-function refreshVoiceLog() {
-  const el = document.getElementById('voice-log');
-  if (el) el.textContent = voiceDiagText();
-}
-
-let probeNow = false;
-async function updateVoiceState() {
-  const el = document.getElementById('voice-state');
-  if (!el) return;
-  if (!V.supported()) { el.textContent = 'Dieser Browser hat keine Spracherkennung. Das Tastatur-Mikrofon funktioniert trotzdem.'; return; }
-  const a = probeNow ? await V.localAvailability() : V.lastAvailability();
-  probeNow = false;
-  if (!a) {
-    el.innerHTML = 'Noch nicht geprüft. <button class="link" data-action="voice-check">Jetzt prüfen</button>';
-    return;
-  }
-  const TEXT: Record<V.Availability, string> = {
-    available: 'Ja, deine Stimme verlässt das Gerät nicht.',
-    downloadable: 'Möglich, nach einmaligem Laden des Sprachpakets.',
-    downloading: 'Sprachpaket wird geladen …',
-    unavailable: 'Nein, nur online über den Browser-Anbieter.',
-    unknown: 'Nein, dieser Browser erkennt Sprache nur online über seinen Anbieter.',
-  };
-  el.textContent = TEXT[a];
 }
 
 async function updatePersistState() {
@@ -1690,7 +1446,6 @@ function onClick(e: MouseEvent) {
       break;
     case 'confirm': if (modal?.kind === 'confirm') { const run = modal.run; modal = null; renderModal(); run(); } break;
     case 'close': modal = null; renderModal(); break;
-    case 'voice': startVoice(el.dataset.target!); break;
     case 'theme': setTheme(el.dataset.value as Theme); break;
     case 'check-update': {
       if (!appActions) { toast('Updates werden in dieser Ansicht nicht geprüft.'); break; }
@@ -1725,54 +1480,6 @@ function onClick(e: MouseEvent) {
       // Erst alles fertig speichern, dann neu starten
       const fn = updateFn;
       void S.whenSaved().then(() => fn?.());
-      break;
-    }
-    case 'voice-check': probeNow = true; void updateVoiceState(); break;
-    case 'voice-variants': {
-      voiceDiagOpen = true;
-      void V.environment().then((e) => { voiceEnv = e; refreshVoiceLog(); });
-      runVoiceVariants();
-      break;
-    }
-    case 'voice-test': {
-      variantLog = [];
-      // Eigener Knopf = ausdrückliche Zustimmung für diesen einen Test
-      voiceDiagOpen = true;
-      const offline = el.dataset.mode === 'offline';
-      if (offline) V.resetLocalBroken();
-      const input = document.getElementById('voice-test-input') as HTMLInputElement | null;
-      if (input) input.value = '';
-      const timer = window.setInterval(refreshVoiceLog, 250);
-      onVoiceDone = () => { window.clearInterval(timer); onVoiceDone = null; void V.environment().then((e) => { voiceEnv = e; refreshVoiceLog(); }); };
-      void V.environment().then((e) => { voiceEnv = e; refreshVoiceLog(); });
-      beginVoice('voice-test-input', offline);
-      break;
-    }
-    case 'voice-capture':
-      if (!V.enabled()) break;
-      modal = { kind: 'capture' }; renderModal();
-      startVoice('quick-input');
-      break;
-    case 'voice-once': resumeVoice(false); break;
-    case 'voice-local': resumeVoice(true); break;
-    case 'voice-always': void S.setVoiceCloud(true); resumeVoice(false); break;
-    case 'voice-cancel':
-      if (modal?.kind === 'voice-consent' || modal?.kind === 'voice-install') { modal = modal.back; renderModal(); }
-      break;
-    case 'voice-skip-install':
-      if (modal?.kind === 'voice-install') {
-        if (S.info.voiceCloud) resumeVoice(false);
-        else { modal = { kind: 'voice-consent', target: modal.target, back: modal.back }; renderModal(); }
-      }
-      break;
-    case 'voice-install-go': {
-      if (modal?.kind !== 'voice-install') break;
-      busy = true; renderModal();
-      void V.installLocal().then(async (ok) => {
-        busy = false;
-        if (ok && (await V.localAvailability()) === 'available') { toast('Sprachpaket bereit. Die Erkennung läuft jetzt offline.'); resumeVoice(true); }
-        else { toast('Das Sprachpaket konnte nicht geladen werden.', 'error'); renderModal(); }
-      });
       break;
     }
     case 'quick-capture': modal = { kind: 'capture' }; renderModal(); break;
@@ -2046,10 +1753,6 @@ function onChange(e: Event) {
   const el = e.target as HTMLInputElement;
   if (el.classList.contains('due-input')) { takeDue(el, true); return; }
   if (el.classList.contains('step-due-input')) { showStepDue(el); return; }
-  if (el.id === 'voice-cloud') {
-    void S.setVoiceCloud(el.checked);
-    toast(el.checked ? 'Online-Erkennung erlaubt.' : 'Online-Erkennung aus. Die App fragt wieder nach.');
-  }
 }
 
 function onInput(e: Event) {
@@ -2073,8 +1776,6 @@ function onKey(e: KeyboardEvent) {
 }
 
 export function mount() {
-  // Spracheingabe vorerst aus: auch den schwebenden Mikrofon-Knopf ausblenden
-  document.documentElement.classList.toggle('voice-off', !V.enabled());
   readHash();
   document.addEventListener('click', onClick, true);
   document.addEventListener('pointerdown', onPointerDown, { passive: true });
@@ -2086,7 +1787,6 @@ export function mount() {
   document.addEventListener('change', onChange);
   document.addEventListener('focusout', (e) => { const el = e.target as HTMLElement; if (el.classList?.contains('due-input')) takeDue(el as HTMLInputElement, true); });
   window.addEventListener('hashchange', () => { readHash(); render(); });
-  document.addEventListener('toggle', (e) => { if ((e.target as HTMLElement).id === 'voice-diag') voiceDiagOpen = (e.target as HTMLDetailsElement).open; }, true);
   document.addEventListener('keydown', onKey);
   S.onChange(render);
   S.onError((m) => toast(m, 'error'));

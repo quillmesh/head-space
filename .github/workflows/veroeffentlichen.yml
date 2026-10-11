@@ -76,12 +76,6 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 14
-      # Übergang: die alten End-to-End-Tests laufen weiter, bis der Nutzer die Zuordnung alt → neu bestätigt hat
-      - name: End-to-End-Tests (alt, Übergang)
-        if: ${{ !cancelled() }}
-        run: tests/run-alt.sh --nur-e2e
-        env:
-          E2E_WEBKIT: '1'
 
   # Push auf test: nach bestandenen Tests die Veröffentlichung auf main anstossen
   anstossen:

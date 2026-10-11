@@ -130,6 +130,50 @@ describe('Projekt löschen (0.10)', () => {
   });
 });
 
+describe('Projekt gelöscht, während ein anderes Gerät einen Schritt hinzufügt (0.11)', () => {
+  // Gerät A löscht das Projekt, Gerät B fügt gleichzeitig (ohne Abgleich dazwischen) einen Schritt hinzu.
+  // Entscheid des Nutzers: Der verwaiste Schritt wird mitgelöscht, egal in welcher Reihenfolge die Uhren stehen.
+  const setup = async () => {
+    const p = S.createProject({ title: 'Umzug' });
+    S.capture('Kisten packen', { list: 'next', projectId: p });
+    await S.whenSaved();
+    return p;
+  };
+  const schrittVonB = (p: string, ts: number) =>
+    ev('b1', ts, 'item.create', { id: 'von-b', title: 'Möbel ausmessen', notes: 'Notiz von B', list: 'next', projectId: p });
+
+  test('Schritt von B ist älter als das Löschen (B-Uhr zurück): wird mitgelöscht', async () => {
+    const p = await setup();
+    const vorher = Date.now() - 1000;
+    S.deleteProject(p);
+    await S.mergeEvents([schrittVonB(p, vorher)]);
+    expect(S.state.items.get('von-b')).toMatchObject({ deleted: true, title: '', notes: '' });
+  });
+  test('Schritt von B ist jünger als das Löschen (B-Uhr vor): wird mitgelöscht', async () => {
+    const p = await setup();
+    S.deleteProject(p);
+    await S.mergeEvents([schrittVonB(p, Date.now() + 60_000)]);
+    expect(S.state.items.get('von-b')).toMatchObject({ deleted: true, title: '', notes: '' });
+  });
+  test('Aufgabe wird in ein gelöschtes Projekt verschoben: wird mitgelöscht', async () => {
+    const p = await setup();
+    const frei = S.capture('Frei', { list: 'next' });
+    await S.whenSaved();
+    S.deleteProject(p);
+    await S.mergeEvents([ev('b2', Date.now() + 60_000, 'item.patch', { id: frei, patch: { projectId: p } })]);
+    expect(S.state.items.get(frei)).toMatchObject({ deleted: true, title: '' });
+  });
+  test('andere Projekte und Aufgaben ohne Projekt bleiben unberührt', async () => {
+    const p = await setup();
+    const q = S.createProject({ title: 'Anderes' });
+    const fremd = S.capture('Gehört zu Anderes', { list: 'next', projectId: q });
+    S.deleteProject(p);
+    await S.mergeEvents([schrittVonB(p, Date.now() - 1000)]);
+    expect(S.state.items.get(fremd)).toMatchObject({ title: 'Gehört zu Anderes' });
+    expect(S.state.items.get(fremd)!.deleted).toBeFalsy();
+  });
+});
+
 describe('Ereignisse', () => {
   test('Zeitstempel sind streng aufsteigend, auch bei vielen Änderungen pro Millisekunde', async () => {
     for (let i = 0; i < 50; i++) S.capture(`x${i}`);

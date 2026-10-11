@@ -31,7 +31,6 @@ Zu Beginn einer neuen Unterhaltung auch `docs/UEBERGABE.md` lesen (Stand, offene
 - Logik gehört in `src/logic.ts`, `store.ts`, `sync.ts` usw., nicht in `ui.ts`, damit sie ohne Browser testbar ist.
 - GitHub Actions führt alle Tests vor dem Veröffentlichen aus; schlägt einer fehl, wird nichts veröffentlicht.
   Bei Fehlern liegen Bericht und Traces als Artifact „playwright-bericht“ am Lauf.
-- Übergang: Die alten Tests (`tests/[0-9]-*.mjs`, `tests/run-alt.sh`) laufen auf GitHub noch mit, bis der Nutzer die Zuordnung bestätigt.
 
 ## Umgebungen
 - **Live** = Branch `main` → https://wuscha93.github.io/head-space/ (echte Daten, Sync mit `head-space-data`)

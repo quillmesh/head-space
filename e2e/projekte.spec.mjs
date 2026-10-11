@@ -22,9 +22,8 @@ test.describe('Projekt auf dem iPad', () => {
   test.use(IPAD);
   test.beforeEach(({ page }) => kalenderAbfangen(page));
 
-  test('neuer Schritt mit Frist (Fahne statt Mikrofon), nach Frist eingeordnet', async ({ page }) => {
+  test('neuer Schritt mit Frist (Fahne), nach Frist eingeordnet', async ({ page }) => {
     await oeffneVelo(page);
-    await expect(page.locator('form[data-form=project-step] .mic'), 'kein Mikrofon').toHaveCount(0);
     await lichtMitFrist(page);
     await expect(karte(page, 'Licht montieren').locator('.slot-due .due')).toContainText('.');
     await expect(page.locator('.step-due-text'), 'Frist-Feld nach dem Hinzufügen leer').toHaveText('');

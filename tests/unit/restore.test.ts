@@ -89,6 +89,21 @@ describe('rewindTo', () => {
   });
 });
 
+describe('rewindTo und gelöschte Projekte (0.11)', () => {
+  test('Zurück vor das Löschen eines Projekts holt Projekt und alle Schritte zurück', async () => {
+    const p = S.createProject({ title: 'Umzug' });
+    S.capture('Kisten packen', { list: 'next', projectId: p });
+    S.capture('Möbel ausmessen', { list: 'next', projectId: p });
+    const point = await lastTs();
+    S.deleteProject(p);
+    expect(titles()).toEqual([]);
+    await S.rewindTo(point);
+    expect(S.state.projects.get(p)).toMatchObject({ title: 'Umzug' });
+    expect(S.state.projects.get(p)!.deleted).toBeFalsy();
+    expect(titles()).toEqual(['Kisten packen', 'Möbel ausmessen']);
+  });
+});
+
 describe('Wiederherstellungspunkte', () => {
   const H = 3_600_000;
   const now = new Date(2026, 9, 9, 18, 0).getTime();

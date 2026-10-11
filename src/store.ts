@@ -11,14 +11,8 @@ import { Q, orderForNew, reorderPatches } from './logic';
 export const EVENT_FORMAT = 1;
 
 export const state: State = { items: new Map(), projects: new Map(), contexts: [] };
-export const info = { device: '', eventCount: 0, lastBackup: 0 as number, persistent: true, voiceCloud: false };
+export const info = { device: '', eventCount: 0, lastBackup: 0 as number, persistent: true };
 
-/** Geräte-Einstellung (nicht im Ereignis-Log): Online-Spracherkennung des Browsers erlaubt? */
-export async function setVoiceCloud(allowed: boolean) {
-  info.voiceCloud = allowed;
-  await db.setMeta('voiceCloud', allowed);
-  notify();
-}
 
 const DEFAULT_CONTEXTS = ['@Computer', '@Telefon', '@Unterwegs', '@Zuhause', '@Büro', '@Besprechung'];
 
@@ -97,16 +91,38 @@ function apply(e: GtdEvent, st: State = state) {
   try { applyUnsafe(e, st); } catch (err) { console.warn('Ereignis übersprungen', e?.id, err); }
 }
 
+/**
+ * Aufgaben eines gelöschten Projekts sind mitgelöscht (0.11), auch wenn ein anderes Gerät gleichzeitig
+ * einen Schritt hinzugefügt hat, den das löschende Gerät noch nicht kannte („verwaister Schritt“).
+ * Das ergibt sich beim Abspielen aus den Ereignissen; es entsteht kein neues Ereignis. Weil alle Geräte
+ * dieselben Ereignisse in derselben Reihenfolge abspielen, ist das Ergebnis überall gleich.
+ * Ausdrückliches Wiederherstellen (Patch mit deleted = null/false) bleibt möglich.
+ */
+function inDeletedProject(it: Item, st: State): boolean {
+  return !it.deleted && !!it.projectId && !!st.projects.get(it.projectId)?.deleted;
+}
+function deleteWithProject(it: Item) {
+  Object.assign(it, { deleted: true, title: '', notes: '' });
+}
+
 function applyUnsafe(e: GtdEvent, st: State) {
   const d = e.data;
   if (!d || typeof d !== 'object') return;
   switch (e.type) {
     case 'item.create':
-      if (typeof d.id === 'string') st.items.set(d.id, normalizeItem(d, e.ts));
+      if (typeof d.id === 'string') {
+        const it = normalizeItem(d, e.ts);
+        if (inDeletedProject(it, st)) deleteWithProject(it); // Schritt zu einem schon gelöschten Projekt
+        st.items.set(d.id, it);
+      }
       break;
     case 'item.patch': {
       const it = st.items.get(d.id);
-      if (it && !ignoreOnDeleted(it, d.patch)) Object.assign(it, d.patch, { updated: e.ts });
+      if (it && !ignoreOnDeleted(it, d.patch)) {
+        Object.assign(it, d.patch, { updated: e.ts });
+        const restoring = d.patch && 'deleted' in d.patch && !d.patch.deleted;
+        if (!restoring && d.patch && 'projectId' in d.patch && inDeletedProject(it, st)) deleteWithProject(it); // in gelöschtes Projekt verschoben
+      }
       break;
     }
     case 'project.create':
@@ -114,7 +130,11 @@ function applyUnsafe(e: GtdEvent, st: State) {
       break;
     case 'project.patch': {
       const p = st.projects.get(d.id);
-      if (p && !ignoreOnDeleted(p, d.patch)) Object.assign(p, d.patch, { updated: e.ts });
+      if (p && !ignoreOnDeleted(p, d.patch)) {
+        Object.assign(p, d.patch, { updated: e.ts });
+        // Projekt gelöscht: auch Schritte, die das löschende Gerät noch nicht kannte
+        if (d.patch?.deleted) for (const it of st.items.values()) if (inDeletedProject(it, st) && it.projectId === p.id) deleteWithProject(it);
+      }
       break;
     }
     case 'context.add':
@@ -172,7 +192,6 @@ export async function init() {
   if (!device) { device = uid(); await db.setMeta('device', device); }
   info.device = device;
   info.lastBackup = (await db.getMeta<number>('lastBackup')) ?? 0;
-  info.voiceCloud = (await db.getMeta<boolean>('voiceCloud')) ?? false;
   const evs = await db.allEvents();
   rebuild(evs);
   if (evs.length === 0) batch(() => DEFAULT_CONTEXTS.forEach((c) => emit('context.add', { name: c })));

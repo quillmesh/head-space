@@ -1,16 +1,15 @@
-# Übergabe für eine neue Unterhaltung (Stand 11.10.2026)
+# Übergabe für eine neue Unterhaltung (Stand 11.10.2026, abends)
 
 Zuerst `CLAUDE.md` lesen: Regeln, Ablauf, **erst fragen, dann umsetzen**.
 
 ## Stand
 - **Live** (`main`): Version **0.9.0**
-- **Test** (`test`): Version **0.10.0**, wartet auf „freigeben“ des Nutzers
+- **Test** (`test`): Version **0.11.0**, wartet auf „freigeben“ des Nutzers (enthält 0.10: Papierkorb, Projekt löschen; 0.11: neues Testkonzept, Spracheingabe entfernt, verwaiste Schritte)
 
 ## Offene Punkte (vom Nutzer noch nicht freigegeben, nicht ohne OK umsetzen)
 1. **Falscher Update-Hinweis in der Live-App.** `build.mjs` setzt die Bau-Nummer (`__APP_BUILD__`, `VERSION` in `sw.js`) aus der Uhrzeit. Jeder Push auf `test` baut die ganze Website neu, also auch Live, und die Live-App meldet dann ein Update ohne Änderung. Vorschlag: Bau-Nummer aus dem Inhalt berechnen (Hash).
-2. **Tests aufräumen.** Es gibt 15 End-to-End-Tests, teils doppelt oder veraltet (z. B. Sprachtests, obwohl die Spracheingabe aus ist). Dem Nutzer vorher eine Liste zeigen, was wegfällt und was bleibt.
-3. **Fahne auf dem iPad.** In 0.9 korrigiert, weil das unsichtbare Datumsfeld hinter der Fahne `appearance: none` hatte. Der Nutzer hat noch nicht bestätigt, dass es auf dem echten iPad geht.
-4. **Spracheingabe pausiert.** Der Code bleibt. Einschalten nur über localStorage `kopf-frei-voice-enabled = 1` (für Tests). Ursprüngliches Problem: Android 10, Chrome, installierte App, `error: aborted` nach etwa 8 ms ohne `audiostart`.
+2. **Fahne auf dem iPad.** In 0.9 korrigiert, weil das unsichtbare Datumsfeld hinter der Fahne `appearance: none` hatte. Der Nutzer hat noch nicht bestätigt, dass es auf dem echten iPad geht.
+3. **Nach der Freigabe:** echte Daten der freigegebenen Version einfrieren (`node scripts/alte-daten-einfrieren.mjs <commit> 0.11.0`).
 
 ## Entscheidungen des Nutzers (gelten)
 - **Kontexte:** Strichsymbole (Stil A, 22 px), Anzeige ohne „@“. Gespeichert bleibt „@Computer“.
@@ -44,6 +43,9 @@ Zuerst `CLAUDE.md` lesen: Regeln, Ablauf, **erst fragen, dann umsetzen**.
   - Bearbeiten speichert nur geänderte Felder (`changedFields`).
   - Änderungen an endgültig Gelöschtem werden ignoriert, ausser ausdrücklichem Wiederherstellen (`ignoreOnDeleted` in `store.ts`).
 - **Dialoge:** Felder gleich hoch, zwei gleich breite Spalten.
+- **Spracheingabe** wird nicht weiterverfolgt: in 0.11 komplett entfernt (Code und Tests). Gespeicherte Altwerte (`voiceCloud` in der Datenbank, `kopf-frei-voice-*` im localStorage) bleiben liegen und werden ignoriert.
+- **Verwaister Schritt** (ein Gerät löscht ein Projekt, das andere fügt gleichzeitig einen Schritt hinzu): wird mitgelöscht (Regel beim Abspielen in `store.ts`, `inDeletedProject`).
+- **Testkonzept:** Variante B umgesetzt (`docs/TESTKONZEPT.md`); alte Tests gelöscht; Knopf-Test prüft jede Knopfart einmal pro Gerät.
 
 ## Neue optionale Datenfelder (seit 0.8)
 - `Item.order`: eigene Position im Projekt; `null` bedeutet „nach Frist sortieren“.
@@ -61,5 +63,5 @@ Zuerst `CLAUDE.md` lesen: Regeln, Ablauf, **erst fragen, dann umsetzen**.
 - **CI-Lauf abwarten:** über die Run-ID des eigenen Commits (`headSha`). Die Logs sind nicht lesbar, nur die Anmerkungen (annotations).
 - **Server beenden:** nicht mit `pkill -f "http.server …"`. Das Muster trifft die eigene Shell.
 - **Simuliertes GitHub in den Tests:** braucht eindeutige SHA-1 pro Datei. Früher führte ein Präfix des Pfads dazu, dass Pakete verwechselt wurden.
-- **Laufzeit:** Unit unter 1 s; End-to-End lokal etwa 2 Minuten. Solange die alten Tests auf GitHub mitlaufen, dauert ein Lauf dort entsprechend länger.
+- **Laufzeit:** Unit unter 1 s; End-to-End lokal etwa 1½ Minuten.
 - **CI-Fehler:** Bericht und Traces als Artifact „playwright-bericht“ (zusätzlich zu den Anmerkungen).

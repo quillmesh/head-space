@@ -1,7 +1,8 @@
-// Jeder Knopf in jeder Ansicht und in den wichtigsten Dialogen reagiert auf Antippen (echte Touch-Ereignisse).
-// Handy und iPad mit Chromium; iPad zusätzlich mit WebKit (Safari-Kern) auf GitHub (E2E_WEBKIT=1, Markierung @webkit).
+// Jede Knopfart reagiert auf Antippen (echte Touch-Ereignisse), einmal pro Gerät (Entscheid 0.11):
+// Alle Ansichten und wichtigen Dialoge werden durchgegangen; eine Knopfart wird dort geprüft, wo sie zum
+// ersten Mal erreichbar ist. Handy und iPad mit Chromium; iPad zusätzlich mit WebKit (Safari-Kern) auf
+// GitHub (E2E_WEBKIT=1, Markierung @webkit).
 // „Reagiert“ heisst: die Seite ändert sich, die Adresse wechselt oder die Datumsauswahl wird geöffnet.
-// Jede Ansicht ist ein eigener Test, damit Playwright sie parallel verteilen kann.
 import { test, expect, HANDY, IPAD } from './fixtures.mjs';
 import { animationenFertig } from './hilfen.mjs';
 
@@ -13,7 +14,7 @@ const STATES = [
   ['bearbeiten', '#waiting', async (p) => { await p.locator('#main .row-title', { hasText: 'Lisa' }).first().tap({ timeout: 3000 }); await p.locator('#e-title').waitFor({ timeout: 3000 }); }],
   ['klären', '#inbox', async (p) => { await p.locator('[data-action=clarify-first]').tap({ timeout: 3000 }); await p.locator('#clarify-title').waitFor({ timeout: 3000 }); }],
   ['menü', '#inbox', async (p) => { if (await p.locator('.menu-btn').isVisible()) { await p.locator('.menu-btn').tap(); await animationenFertig(p); } }],
-  ['schnellerfassung', '#inbox', async (p) => { await p.locator('.fab:not(.fab-mic)').tap(); await p.locator('#quick-input').waitFor(); }],
+  ['schnellerfassung', '#inbox', async (p) => { await p.locator('.fab').tap(); await p.locator('#quick-input').waitFor(); }],
 ];
 // Bewusst ohne sichtbare Reaktion: Griff (nur Ziehen), Löschen hinter der Karte (nur nach Wischen sichtbar)
 const SKIP = '.drag-handle, .swipe-del';
@@ -36,7 +37,7 @@ const SPY = () => {
 for (const [geraetName, geraet] of [['Handy', HANDY], ['iPad @webkit', IPAD]]) {
   test.describe(`Alle Knöpfe: ${geraetName}`, () => {
     // Service Worker hier aus: er hat mit den Knöpfen nichts zu tun (eigene Tests in update-offline.spec.mjs)
-    // und würde sich bei jedem der rund 170 Neuladen neu einrichten.
+    // und würde sich bei jedem Neuladen neu einrichten.
     test.use({ ...geraet, serviceWorkers: 'block' });
     test.beforeEach(async ({ page }) => {
       await page.addInitScript(SPY);
@@ -52,16 +53,19 @@ for (const [geraetName, geraet] of [['Handy', HANDY], ['iPad @webkit', IPAD]]) {
       if (prep) await prep(page);
     };
 
-    for (const [name, hash, prep] of STATES) {
-      test(name, async ({ page }, testInfo) => {
+    test('jede Knopfart reagiert auf Antippen', async ({ page }, testInfo) => {
+      test.setTimeout(180_000);
+      const geprueft = new Set();
+      const ohneReaktion = [];
+      for (const [name, hash, prep] of STATES) {
         const lade = () => laden(page, hash, prep);
         await lade();
-        // ein Knopf pro Art (gleiche Aktion auf vielen Karten wird einmal geprüft)
-        const sigs = await page.evaluate((skip) => [...new Set([...document.querySelectorAll('button, a[href]')]
-          .filter((el) => !el.closest(skip) && window.__reachable(el)).map((el) => window.__sig(el)))], SKIP);
-        expect(sigs.length, 'Knöpfe gefunden').toBeGreaterThan(0);
-        const ohneReaktion = [];
+        // Knopfarten dieser Ansicht, die noch in keiner früheren Ansicht geprüft wurden
+        const sigs = (await page.evaluate((skip) => [...new Set([...document.querySelectorAll('button, a[href]')]
+          .filter((el) => !el.closest(skip) && window.__reachable(el)).map((el) => window.__sig(el)))], SKIP))
+          .filter((sig) => !geprueft.has(sig));
         for (const sig of sigs) {
+          geprueft.add(sig);
           await lade();
           const found = await page.evaluate(([sig, skip]) => {
             const cands = [...document.querySelectorAll('button, a[href]')].filter((el) => !el.closest(skip) && window.__reachable(el) && window.__sig(el) === sig);
@@ -80,7 +84,7 @@ for (const [geraetName, geraet] of [['Handy', HANDY], ['iPad @webkit', IPAD]]) {
           }, [sig, SKIP]);
           if (found !== 'ok') continue;
           const knopf = page.locator('[data-knopf="1"]');
-          const label = sig.split('|').filter(Boolean).slice(1).join(' ') || sig;
+          const label = `${name}: ${sig.split('|').filter(Boolean).slice(1).join(' ') || sig}`;
           const vorher = await page.evaluate(() => { const k = document.querySelector('[data-knopf]'); k?.removeAttribute('data-knopf'); const h = document.documentElement.outerHTML; k?.setAttribute('data-knopf', '1'); return { h, url: location.href, p: window.__picker }; });
           try { await knopf.tap({ timeout: 2500 }); } catch (e) { ohneReaktion.push(`${label}: lässt sich nicht antippen (${e.message.split('\n')[0]})`); continue; }
           // Reaktion abwarten (Seite neu geladen zählt auch als Reaktion)
@@ -90,10 +94,12 @@ for (const [geraetName, geraet] of [['Handy', HANDY], ['iPad @webkit', IPAD]]) {
           }, { timeout: 1500 }).toBe(true).then(() => true, () => false);
           if (!reagiert) ohneReaktion.push(`${label}: keine Reaktion`);
         }
-        testInfo.annotations.push({ type: 'Knopfarten', description: String(sigs.length) });
-        expect(ohneReaktion, `${geraetName} ${name}`).toEqual([]);
-      });
-    }
+      }
+      testInfo.annotations.push({ type: 'Knopfarten', description: String(geprueft.size) });
+      if (process.env.KNOPF_DEBUG) (await import('node:fs')).appendFileSync(process.env.KNOPF_DEBUG, `${geraetName} ${geprueft.size}\n`);
+      expect(geprueft.size, 'Knopfarten gefunden').toBeGreaterThan(30);
+      expect(ohneReaktion, geraetName).toEqual([]);
+    });
 
     test('Fahne öffnet die Datumsauswahl beim ersten Antippen (Liste und Projekt); Feld nicht umgestaltet', async ({ page }) => {
       for (const [hash, prep] of [['#next', null], ['#projects', STATES.find((s) => s[0] === 'projekt')[2]]]) {

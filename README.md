@@ -8,9 +8,9 @@ Installierbare Web-App (PWA) für Android, iPad und Windows. Die Daten liegen au
 
 Neue Versionen landen zuerst in der Test-App und kommen erst nach Freigabe in die Live-App.
 
-## Funktionen (Version 0.10.0)
+## Funktionen (Version 0.11.0)
 
-- **Inbox** mit Schnellerfassung (Plus-Knopf, Taste `N` oder Spracheingabe)
+- **Inbox** mit Schnellerfassung (Plus-Knopf oder Taste `N`)
 - **Klär-Dialog** nach dem Ablaufdiagramm des Buchs
 - **Kontexte als Symbole** (Computer, Telefon, Unterwegs, Zuhause, Büro, Besprechung; eigene Kontexte mit Etikett und Namen)
 - **Listen**: Nächste Schritte (Kontext-Filter), Fristen (nur Aufgaben), Projekte, Warten auf, Wiedervorlage, Irgendwann/Vielleicht, Referenz, Erledigt, Papierkorb
@@ -19,9 +19,8 @@ Neue Versionen landen zuerst in der Test-App und kommen erst nach Freigabe in di
 - **Handy**: kompakte Karten (alles in einer Zeile unter dem Titel)
 - **Rückgängig** (3 Sekunden) nach Erledigen, Löschen, Verschieben, Klären und Projektstatus
 - **Wischen zum Löschen**: Karte nach links wischen → „Löschen“ legt die Aufgabe in den Papierkorb (3 Sekunden Rückgängig). Im Papierkorb kein Wischen; endgültig erst mit „Papierkorb leeren“.
-- **Projekt löschen** nur in der Projektansicht, mit Bestätigung: Projekt und alle seine Aufgaben werden endgültig gelöscht.
+- **Projekt löschen** nur in der Projektansicht, mit Bestätigung: Projekt und alle seine Aufgaben werden endgültig gelöscht, auch ein Schritt, den ein anderes Gerät gleichzeitig hinzugefügt hat.
 - **Sync-Konflikte**: Bearbeiten speichert nur geänderte Felder; endgültig Gelöschtes bleibt auf allen Geräten gelöscht.
-- **Spracheingabe**: vorerst ausgeschaltet (Code bleibt, für spätere Versionen)
 - **Karten-Design** in Solarized, Hell/Dunkel/System umschaltbar
 - **Sync** über ein privates GitHub-Repository, Ende-zu-Ende verschlüsselt
 - **Zurück auf früheren Stand**: Einstellungen → Stand vor einem Update, Ende eines Tages oder eigener Zeitpunkt. Nichts wird gelöscht, die App gleicht mit neuen Änderungen aus; lässt sich selbst wieder rückgängig machen.
@@ -83,7 +82,6 @@ src/
   store.ts    Ereignis-Log → Zustand, Aktionen, Backup, Kompatibilitätsregeln
   sync.ts     Verschlüsselter GitHub-Sync
   crypto.ts   Verschlüsselung (Web Crypto API)
-  voice.ts    Spracheingabe (offline bevorzugt)
   icons.ts    Kontext-Symbole
   ui.ts       Ansichten, Dialoge, Einstellungen
   main.ts     Start, Service Worker, Update-Hinweis

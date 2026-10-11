@@ -228,3 +228,37 @@ test.describe('Löschen über zwei Geräte', () => {
     expect(gh.files.size, 'ohne Änderungen kein Upload').toBe(n);
   });
 });
+
+test.describe('Projekt löschen, während das andere Gerät einen Schritt hinzufügt (0.11)', () => {
+  test('der verwaiste Schritt wird auf beiden Geräten mitgelöscht', async ({ geraet }) => {
+    const gh = simuliertesGitHub();
+    const A = await geraet({ viewport: { width: 1180, height: 900 }, serviceWorkers: 'block' }, 'A');
+    const B = await geraet({ ...HANDY, serviceWorkers: 'block' }, 'B');
+    for (const p of [A, B]) await gh.anschliessen(p);
+    const abgleich = async (...ps) => { for (const p of ps) await p.evaluate(async () => { await window.kopfFrei.whenSaved(); await window.kopfFrei.sync(); await window.kopfFrei.sync(); }); };
+
+    await gehe(A, '#projects');
+    await A.click('[data-action=new-project]'); await A.fill('#pf-title', 'Umzug'); await A.fill('#pf-next', 'Kisten packen');
+    await A.click('form[data-form=project] button[type=submit]');
+    await A.locator('#step-input').waitFor();
+    await syncEinrichten(A, { erstes: true });
+    await syncEinrichten(B);
+
+    // Ohne Abgleich dazwischen: A löscht das Projekt, B fügt einen Schritt hinzu
+    await gehe(A, '#projects'); await A.locator('#main .row-title', { hasText: 'Umzug' }).click();
+    await A.click('[data-action=delete-project]'); await A.click('[data-action=confirm]');
+    await gehe(B, '#projects'); await B.locator('#main .row-title', { hasText: 'Umzug' }).tap();
+    await B.fill('#step-input', 'Möbel ausmessen'); await B.keyboard.press('Enter');
+    await expect(karte(B, 'Möbel ausmessen')).toHaveCount(1);
+
+    await abgleich(A, B, A);
+    expect(await B.evaluate(() => window.kopfFrei.snapshot())).toBe(await A.evaluate(() => window.kopfFrei.snapshot()));
+    for (const p of [A, B]) {
+      await gehe(p, '#next');
+      await expect(karte(p, 'Möbel ausmessen'), 'verwaister Schritt weg').toHaveCount(0);
+      await expect(karte(p, 'Kisten packen')).toHaveCount(0);
+      await gehe(p, '#done');
+      await expect(karte(p, 'Möbel ausmessen'), 'nicht im Papierkorb (endgültig)').toHaveCount(0);
+    }
+  });
+});

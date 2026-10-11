@@ -132,14 +132,13 @@ async function run(steps: Step[], skewB: number): Promise<Check[]> {
   const leakingP = [...S.state.projects.values()].filter((p) => p.deleted && (p.title !== '' || p.outcome !== ''));
   checks.push({ name: 'Endgültig Gelöschtes bleibt leer', ok: !leaking.length && !leakingP.length, detail: JSON.stringify([...leaking, ...leakingP]) });
 
-  // Bekannt offen (siehe docs/TESTKONZEPT.md): Schritt, den ein Gerät zu einem Projekt hinzufügt,
-  // während das andere dasselbe Projekt löscht. Wird hier nur gezählt, nicht als Fehler gewertet.
+  // Entscheid 0.11: Aufgaben eines gelöschten Projekts sind mitgelöscht, auch wenn ein anderes Gerät
+  // gleichzeitig einen Schritt hinzugefügt hat (verwaister Schritt).
   const orphan = [...S.state.items.values()].filter((i) => !i.deleted && i.projectId && S.state.projects.get(i.projectId)?.deleted);
-  if (orphan.length) orphans++;
+  checks.push({ name: 'Keine offene Aufgabe in einem gelöschten Projekt', ok: !orphan.length, detail: JSON.stringify(orphan) });
   return checks;
 }
 
-let orphans = 0;
 
 /** Verkleinert einen fehlschlagenden Ablauf: Schritte weglassen, solange die Regel weiterhin verletzt ist. */
 async function shrink(steps: Step[], skew: number, rule: string): Promise<Step[]> {
@@ -176,7 +175,4 @@ describe('Sync: Zufallsabläufe auf zwei Geräten', () => {
   }, 120_000);
 });
 
-afterAll(() => {
-  setSystemTime();
-  if (orphans) console.log(`Hinweis: in ${orphans} Abläufen blieb ein Schritt eines gelöschten Projekts übrig (bekannt, offen).`);
-});
+afterAll(() => setSystemTime());

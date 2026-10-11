@@ -78,7 +78,7 @@ test.describe('Auf dem Handy', () => {
     await page.locator('#main .check').first().tap();
     await expect(page.locator('#undo')).toHaveClass(/show/);
     const leiste = await page.locator('#undo').boundingBox();
-    const plus = await page.locator('.fab:not(.fab-mic)').boundingBox();
+    const plus = await page.locator('.fab').boundingBox();
     expect(leiste.x + leiste.width).toBeLessThanOrEqual(plus.x);
   });
 });
