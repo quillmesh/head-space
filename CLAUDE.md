@@ -2,6 +2,8 @@
 
 Persönliche GTD-App „Kopf frei“ des Nutzers (wuscha93). Sprache: Deutsch (Schweiz, „ss“ statt „ß“ in UI-Texten).
 
+Zu Beginn einer neuen Unterhaltung auch `docs/UEBERGABE.md` lesen (Stand, offene Punkte, Entscheidungen).
+
 ## Zusammenarbeit (Wunsch des Nutzers, gilt immer)
 - **Nichts annehmen und umsetzen, ohne zu fragen.** Ist etwas unklar oder gibt es mehrere sinnvolle Lösungen
   (Gestaltung, Verhalten, Wortwahl, wo etwas gilt), zuerst nachfragen und auf die Antwort warten.
