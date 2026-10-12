@@ -10,6 +10,10 @@ Zu Beginn einer neuen Unterhaltung auch `docs/UEBERGABE.md` lesen (Stand, offene
 - Bei Gestaltungsfragen zuerst Vorschläge als Screenshots zeigen; umsetzen erst nach ausdrücklichem OK.
 - Weicht die Umsetzung in einem Detail von dem ab, was der Nutzer gesehen oder gesagt hat, vorher fragen –
   nicht nachträglich erwähnen.
+- **Änderungswünsche:** Sagt der Nutzer, einen Wunsch aufzuschreiben, ihn im Claude-Projekt in
+  `claude/Kopf frei – Änderungswünsche.md` eintragen (nicht im Repo): fortlaufende Nummer (nie neu vergeben),
+  Datum, Wunsch in seinen Worten, Status (offen / in Arbeit / im Test (x.y.z) / live (x.y.z) / verworfen).
+  Nur aufschreiben, **nicht umsetzen**, bis er es ausdrücklich sagt. Status bei jedem Schritt nachführen.
 
 ## Vor jeder Änderung
 - README-Abschnitt „Regeln für Erweiterungen“ einhalten. Der Nutzer arbeitet mit echten Daten weiter; **jede Änderung muss alte Daten lesen können**.
