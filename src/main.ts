@@ -1,5 +1,5 @@
-import { info, init, recordVersion, whenSaved } from './store';
-import { APP_VERSION, applyTheme, mount, offerUpdate, setAppActions } from './ui';
+import { addNewDefaultContexts, info, init, recordVersion, whenSaved } from './store';
+import { APP_VERSION, applyTheme, mount, offerUpdate, setAppActions, showNewsIfUpdated } from './ui';
 import { requestPersistence, setOnBlocked } from './db';
 import { initSync, syncNow } from './sync';
 import { IS_TEST } from './env';
@@ -34,6 +34,8 @@ async function start() {
     console.error(err);
   }
   try { await recordVersion(APP_VERSION); } catch { /* nicht kritisch */ }
+  // 0.12: neue Standard-Kontexte (Zug, Einkaufen) bei bestehenden Daten einmal ergänzen
+  try { await addNewDefaultContexts(); } catch (err) { console.error(err); }
   if (IS_TEST) {
     // Test-App deutlich kennzeichnen und beim ersten Start mit Beispieldaten füllen
     document.documentElement.classList.add('env-test');
@@ -47,6 +49,7 @@ async function start() {
     }
   }
   mount();
+  void showNewsIfUpdated();
   try { await initSync(); } catch (err) { console.error(err); }
   requestPersistence();
   registerServiceWorker();

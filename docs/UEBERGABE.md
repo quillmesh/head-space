@@ -1,15 +1,17 @@
-# Übergabe für eine neue Unterhaltung (Stand 11.10.2026, abends)
+# Übergabe für eine neue Unterhaltung (Stand 12.10.2026, abends)
 
 Zuerst `CLAUDE.md` lesen: Regeln, Ablauf, **erst fragen, dann umsetzen**.
 
 ## Stand
-- **Live** (`main`): Version **0.9.0**
-- **Test** (`test`): Version **0.11.0**, wartet auf „freigeben“ des Nutzers (enthält 0.10: Papierkorb, Projekt löschen; 0.11: neues Testkonzept, Spracheingabe entfernt, verwaiste Schritte)
+- **Live** (`main`): Version **0.11.0** (freigegeben 11.10.2026, Daten eingefroren in `tests/unit/alte-daten/v0.11.0.json`)
+- **Test** (`test`): Version **0.12.0**, wartet auf „freigeben“. Enthält die Änderungswünsche 1–6 (Liste im Claude-Projekt
+  „Kopf frei – Änderungswünsche“): Projektfarbe zeigen und wählen, abgeschlossene Projekte unter „Erledigt“, Kontexte
+  Zug/Unterwegs/Einkaufen, Unteraufgaben, Release Notes mit „Was ist neu“.
 
 ## Offene Punkte (vom Nutzer noch nicht freigegeben, nicht ohne OK umsetzen)
 1. **Falscher Update-Hinweis in der Live-App.** `build.mjs` setzt die Bau-Nummer (`__APP_BUILD__`, `VERSION` in `sw.js`) aus der Uhrzeit. Jeder Push auf `test` baut die ganze Website neu, also auch Live, und die Live-App meldet dann ein Update ohne Änderung. Vorschlag: Bau-Nummer aus dem Inhalt berechnen (Hash).
 2. **Fahne auf dem iPad.** In 0.9 korrigiert, weil das unsichtbare Datumsfeld hinter der Fahne `appearance: none` hatte. Der Nutzer hat noch nicht bestätigt, dass es auf dem echten iPad geht.
-3. **Nach der Freigabe:** echte Daten der freigegebenen Version einfrieren (`node scripts/alte-daten-einfrieren.mjs <commit> 0.11.0`).
+3. **Nach der Freigabe von 0.12.0:** echte Daten einfrieren (`node scripts/alte-daten-einfrieren.mjs <commit> 0.12.0`).
 
 ## Entscheidungen des Nutzers (gelten)
 - **Kontexte:** Strichsymbole (Stil A, 22 px), Anzeige ohne „@“. Gespeichert bleibt „@Computer“.
@@ -47,9 +49,26 @@ Zuerst `CLAUDE.md` lesen: Regeln, Ablauf, **erst fragen, dann umsetzen**.
 - **Verwaister Schritt** (ein Gerät löscht ein Projekt, das andere fügt gleichzeitig einen Schritt hinzu): wird mitgelöscht (Regel beim Abspielen in `store.ts`, `inDeletedProject`).
 - **Testkonzept:** Variante B umgesetzt (`docs/TESTKONZEPT.md`); alte Tests gelöscht; Knopf-Test prüft jede Knopfart einmal pro Gerät.
 
+- **Projektfarbe (0.12):** Name in der Projektliste und Titel der Projektansicht in der Projektfarbe (Variante B, ohne Punkte).
+  Knopf „Farbe“ in der Projektansicht, 20 klar unterscheidbare Farben (7 Solarized + 13 ergänzte, kein Rot), Haken = dieses
+  Projekt, Ring = schon bei einem anderen Projekt; gleiche Farbe mehrfach erlaubt. Ohne Wahl bleibt die automatische Farbe wie bis 0.11.
+- **Abgeschlossene Projekte (0.12):** unter „Erledigt“ nur als Karte (Abschnitt „Abgeschlossene Projekte“, verworfene im eigenen
+  Abschnitt), ihre Aufgaben nicht einzeln. Abschliessen mit offenen Aufgaben fragt: „Mit erledigen“ oder „Offen lassen“.
+  Haken einer Aufgabe im geschlossenen Projekt zurücknehmen fragt: „Ganzes Projekt wieder aktivieren“ oder „Nur diese Aufgabe“
+  (wird vom Projekt gelöst und steht einzeln in Nächste Schritte).
+- **Kontexte (0.12):** „Zug“ mit Zugsymbol, „Unterwegs“ mit laufendem Männchen, neu „Einkaufen“ mit Einkaufswagen.
+  Zug und Einkaufen werden bei bestehenden Daten einmal automatisch ergänzt (nur wenn nie angelegt; gelöscht bleibt gelöscht).
+- **Unteraufgaben (0.12):** nur im Dialog der Aufgabe. Knopf „Unteraufgaben hinzufügen“, weitere mit „+ Unteraufgabe“.
+  Abhaken wird sofort gespeichert und bleibt sichtbar (durchgestrichen); Text, neue und entfernte mit „Speichern“.
+- **Release Notes (0.12):** `RELEASE-NOTES.md`, bei jeder Version Pflicht. Nach einem Update einmal „Was ist neu“.
+
 ## Neue optionale Datenfelder (seit 0.8)
 - `Item.order`: eigene Position im Projekt; `null` bedeutet „nach Frist sortieren“.
 - `Project.sequential`: seit 0.10 ohne Wirkung.
+- `Project.color` (0.12): Schlüssel aus `PROJECT_COLORS` (`logic.ts`), `null` = automatisch.
+- `Item.subtasks` (0.12): Liste `{ id, title, done, order, deleted? }`. Geändert nur über das neue Ereignis `item.sub`
+  (`{ id, sid, patch }`), je Unteraufgabe einzeln, damit zwei Geräte sich nicht überschreiben. Ältere Versionen
+  speichern das unbekannte Ereignis und geben es weiter.
 
 ## Praktische Hinweise für die Arbeit hier
 - **Tests lokal:**

@@ -11,13 +11,14 @@ Oberste Priorität bleibt die **Datenkonsistenz zwischen Geräten**.
 | Typen | `src/` | TypeScript | ~5 s | Schreibfehler, falsche Felder |
 | Unit | `tests/unit/*.test.ts` | `bun test` | < 1 s | Logik, Speicher, Sync, Verschlüsselung, Zurücksetzen |
 | Darstellung | `tests/unit/karten.test.ts` | `bun test` | ms | welches Symbol / welche Farbstufe in einer Karte |
-| Alte Daten | `tests/unit/alte-daten.test.ts` + `alte-daten/` | `bun test` | ms | echte Daten von 0.1, 0.5, 0.8, 0.9, 0.10 werden genau so gelesen |
+| Alte Daten | `tests/unit/alte-daten.test.ts` + `alte-daten/` | `bun test` | ms | echte Daten von 0.1, 0.5, 0.8, 0.9, 0.10, 0.11 werden genau so gelesen |
 | Sync-Zufall | `tests/unit/sync-zufall.test.ts` | `bun test` | ~0,2 s | 150 zufällige Abläufe auf zwei Geräten mit verstellten Uhren |
+| Neuerungen | `tests/unit/notes.test.ts` | `bun test` | ms | RELEASE-NOTES.md hat einen Eintrag für die Version in package.json; was nach einem Update gezeigt wird |
 | End-to-End | `e2e/<funktion>.spec.mjs` | Playwright Test | ~1½ min | Bedienung, Touch, CSS, Service Worker, Sync im Browser |
 
 ### Zufallstests für den Sync (property-based)
 Statt einzelner Fälle erzeugt der Test viele zufällige Abläufe (erfassen, ändern, erledigen, Papierkorb, leeren,
-Projekte, ziehen, löschen; Abgleich zu zufälligen Zeitpunkten; Uhr von Gerät B bis ±10 min falsch) und prüft Regeln,
+Projekte, ziehen, löschen, Unteraufgaben, Projektfarbe, Projekt abschliessen und Aufgabe zurückholen; Abgleich zu zufälligen Zeitpunkten; Uhr von Gerät B bis ±10 min falsch) und prüft Regeln,
 die immer gelten müssen: beide Geräte gleich, Reihenfolge des Eintreffens egal, Abgleich idempotent, endgültig
 Gelöschtes bleibt leer, keine offene Aufgabe in einem gelöschten Projekt (verwaister Schritt, Entscheid 0.11). Bei einem Fehler wird der Ablauf automatisch auf die wenigsten Schritte verkleinert
 („Shrinking“) und mit Startwert ausgegeben: `SYNC_SEED=<Zahl> bun test tests/unit/sync-zufall.test.ts`.
@@ -45,9 +46,11 @@ absichtlich, `ALTE_DATEN_EINFRIEREN=1 bun test tests/unit/alte-daten.test.ts` un
 | `erfassen-klaeren` | Inbox, alle Klär-Wege, einzeln klären, Fristen beim Klären, Fristen-Ansicht |
 | `erledigen-rueckgaengig` | Erledigen, Rückgängig-Leiste, „Nächster Schritt“, Projekteintrag übernehmen |
 | `fristen-kalender` | Fahne in der Karte, Ersatzdialog, nur „input“ (iPad), Rad-Auswahl |
-| `projekte` | Schritt mit Frist, Ziehen mit dem Finger, Warndreieck, Pfeiltasten, Wischen vs. Griff |
+| `projekte` | Schritt mit Frist, Ziehen mit dem Finger, Warndreieck, Pfeiltasten, Wischen vs. Griff, Projektfarbe zeigen und wählen, Abschliessen mit Rückfrage, „Erledigt“ mit Projekt-Karte, Zurückholen |
+| `unteraufgaben` | Unteraufgaben einschalten, „+“, sofort abhaken (bleibt sichtbar), entfernen, umbenennen |
+| `neuerungen` | „Was ist neu“: neues Gerät ohne Fenster, nach Update einmal |
 | `loeschen-papierkorb` | Wischen, Rückgängig, Papierkorb leeren, Projekt löschen |
-| `darstellung` | Farben, Grössen, „auf einer Linie“, kompakte Handy-Karten, Dialog-Felder, Hell/Dunkel |
+| `darstellung` | Farben, Grössen, „auf einer Linie“, kompakte Handy-Karten, Dialog-Felder, Hell/Dunkel, Kontext-Symbole (Zug, Unterwegs, Einkaufen), Filterleiste ohne Querscrollen |
 | `sync` | alte Datenbank v1, Einrichten, zwei Geräte, verschlüsselt, Löschen über zwei Geräte, verwaister Schritt |
 | `update-offline` | Service Worker, Update-Hinweis, veralteter Zwischenspeicher, App reparieren (eigener Server) |
 | `umgebungen` | Live und Test getrennt (Daten, Einstellungen, Service Worker, Caches, Backup) |

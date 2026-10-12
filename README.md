@@ -83,11 +83,13 @@ src/
   sync.ts     Verschlüsselter GitHub-Sync
   crypto.ts   Verschlüsselung (Web Crypto API)
   icons.ts    Kontext-Symbole
+  notes.ts    Release Notes lesen („Was ist neu“ nach einem Update)
   ui.ts       Ansichten, Dialoge, Einstellungen
   main.ts     Start, Service Worker, Update-Hinweis
   styles.css, cards.css   Gestaltung
 public/       Manifest, Service Worker, Icons
 tests/unit/   Unit-Tests (bun test), alte Datenstände in tests/unit/alte-daten/
+RELEASE-NOTES.md  Neuerungen je Version (wird in die App eingebaut)
 e2e/          End-to-End-Tests (Playwright Test), Aufbau in docs/TESTKONZEPT.md
 .github/workflows/veroeffentlichen.yml   Build und Veröffentlichung
 ```

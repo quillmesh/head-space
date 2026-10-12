@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import * as S from '../../src/store';
 import * as db from '../../src/db';
+import * as L from '../../src/logic';
 import type { GtdEvent } from '../../src/types';
 
 beforeEach(async () => {
@@ -13,10 +14,10 @@ beforeEach(async () => {
 const ev = (id: string, ts: number, type: string, data: unknown, device = 'fremd'): GtdEvent => ({ id, ts, device, type, data });
 
 describe('Start', () => {
-  test('neues Gerät: Geräte-ID und Standard-Kontexte', () => {
+  test('neues Gerät: Geräte-ID und Standard-Kontexte (ab 0.12 mit Zug und Einkaufen)', () => {
     expect(S.info.device.length).toBeGreaterThan(8);
     expect(S.state.contexts).toContain('@Telefon');
-    expect(S.state.contexts.length).toBe(6);
+    expect(S.state.contexts).toEqual(['@Computer', '@Telefon', '@Unterwegs', '@Zuhause', '@Büro', '@Besprechung', '@Zug', '@Einkaufen']);
   });
   test('ohne IndexedDB: läuft im Arbeitsspeicher und meldet das', () => {
     expect(S.info.persistent).toBe(false);
@@ -284,5 +285,130 @@ describe('Speichern', () => {
     await S.whenSaved();
     const titles = (await db.allEvents()).map((e) => (e.data as any)?.title);
     for (let i = 0; i < 20; i++) expect(titles).toContain(`s${i}`);
+  });
+});
+
+describe('Neue Kontexte Zug und Einkaufen (0.12)', () => {
+  const oldData = async () => {
+    db.resetMemoryForTests(); S.resetForTests();
+    await db.putEvents(['@Computer', '@Telefon', '@Unterwegs'].map((name, i) => ev(`c${i}`, 1000 + i, 'context.add', { name })));
+    await S.init();
+  };
+  test('bestehende Daten: einmal ergänzt; init allein ändert nichts', async () => {
+    await oldData();
+    expect(S.state.contexts).toEqual(['@Computer', '@Telefon', '@Unterwegs']);
+    expect(await S.addNewDefaultContexts()).toEqual(['@Zug', '@Einkaufen']);
+    expect(S.state.contexts).toEqual(['@Computer', '@Telefon', '@Unterwegs', '@Zug', '@Einkaufen']);
+    expect(await S.addNewDefaultContexts()).toEqual([]);
+  });
+  test('gelöscht bleibt gelöscht, auch auf einem anderen Gerät, das noch nicht ergänzt hatte', async () => {
+    await oldData();
+    await S.addNewDefaultContexts();
+    S.removeContext('@Zug');
+    await S.whenSaved();
+    const log = await db.allEvents();
+    // anderes Gerät: bekommt die Ereignisse, hat selbst noch nie ergänzt
+    db.resetMemoryForTests(); S.resetForTests();
+    await db.putEvents(log); await S.init();
+    expect(await S.addNewDefaultContexts()).toEqual(['@Einkaufen'].filter((c) => !S.state.contexts.includes(c)));
+    expect(S.state.contexts).not.toContain('@Zug');
+    expect(S.state.contexts).toContain('@Einkaufen');
+  });
+  test('neues Gerät: nichts doppelt', async () => {
+    expect(await S.addNewDefaultContexts()).toEqual([]);
+    expect(S.state.contexts.filter((c) => c === '@Zug').length).toBe(1);
+  });
+});
+
+describe('Unteraufgaben (0.12)', () => {
+  test('anlegen, abhaken, umbenennen, löschen; Reihenfolge nach Anlegen', () => {
+    const id = S.capture('A');
+    const s1 = S.addSubtask(id, ' Erstens ');
+    const s2 = S.addSubtask(id, 'Zweitens');
+    S.patchSubtask(id, s1, { done: true });
+    S.patchSubtask(id, s2, { title: 'Zwei' });
+    const it = S.state.items.get(id)!;
+    expect(it.subtasks!.map((s) => [s.title, s.done])).toEqual([['Erstens', true], ['Zwei', false]]);
+    S.patchSubtask(id, s1, { deleted: true });
+    expect(L.subtasksOf(S.state.items.get(id)!).map((s) => s.title)).toEqual(['Zwei']);
+  });
+  test('alte Einträge ohne Feld: leere Liste', () => {
+    const id = S.capture('A');
+    expect(S.state.items.get(id)!.subtasks).toEqual([]);
+  });
+  test('zwei Geräte ändern verschiedene Unteraufgaben gleichzeitig: beides bleibt', async () => {
+    const id = S.capture('A');
+    const a = S.addSubtask(id, 'a');
+    const b = S.addSubtask(id, 'b');
+    await S.whenSaved();
+    const base = await db.allEvents();
+    const t = base[base.length - 1].ts;
+    const n = await S.mergeEvents([
+      ev('x1', t + 10, 'item.sub', { id, sid: a, patch: { done: true } }, 'A'),
+      ev('x2', t + 11, 'item.sub', { id, sid: b, patch: { title: 'B neu' } }, 'B'),
+    ]);
+    expect(n).toBe(2);
+    expect(S.state.items.get(id)!.subtasks!.map((s) => [s.title, s.done])).toEqual([['a', true], ['B neu', false]]);
+  });
+  test('Ereignis verändert nie die gespeicherten Daten eines früheren Ereignisses', async () => {
+    const id = S.capture('A');
+    const s1 = S.addSubtask(id, 'x');
+    await S.whenSaved();
+    const before = JSON.stringify(await db.allEvents());
+    S.patchSubtask(id, s1, { done: true });
+    await S.whenSaved();
+    expect(JSON.stringify((await db.allEvents()).slice(0, -1))).toBe(before);
+  });
+  test('Papierkorb leeren und Projekt löschen entfernen auch die Unteraufgaben; spätere Änderungen werden ignoriert', () => {
+    const id = S.capture('Geheim');
+    const s1 = S.addSubtask(id, 'PIN 1234');
+    S.trashItem(id); S.emptyTrash();
+    expect(S.state.items.get(id)!.subtasks).toEqual([]);
+    S.patchSubtask(id, s1, { title: 'wieder da?' });
+    expect(S.state.items.get(id)!.subtasks).toEqual([]);
+    const p = S.createProject({ title: 'P' });
+    const j = S.capture('Schritt', { list: 'next', projectId: p });
+    S.addSubtask(j, 'geheim');
+    S.deleteProject(p);
+    expect(S.state.items.get(j)!.subtasks).toEqual([]);
+  });
+  test('ältere App-Version: unbekanntes Ereignis bleibt gespeichert (Format unverändert)', () => {
+    expect(S.EVENT_FORMAT).toBe(1);
+  });
+});
+
+describe('Projekt abschliessen und zurückholen (0.12)', () => {
+  test('mit offenen Aufgaben: erledigen oder offen lassen; Rückgängig stellt alles her', () => {
+    const p = S.createProject({ title: 'P' });
+    const a = S.capture('offen', { list: 'next', projectId: p });
+    const w = S.capture('wartet', { list: 'waiting', projectId: p });
+    const r = S.capture('Referenz', { list: 'reference', projectId: p });
+    expect(L.Q.openInProject(p).map((i) => i.title).sort()).toEqual(['offen', 'wartet']);
+    const u = S.completeProject(p, true)!;
+    expect(S.state.projects.get(p)!.status).toBe('done');
+    expect([a, w].map((id) => S.state.items.get(id)!.list)).toEqual(['done', 'done']);
+    expect(S.state.items.get(r)!.list).toBe('reference');
+    S.undoCompleteProject(p, u);
+    expect(S.state.projects.get(p)!.status).toBe('active');
+    expect([a, w].map((id) => S.state.items.get(id)!.list)).toEqual(['next', 'waiting']);
+    S.completeProject(p, false);
+    expect(S.state.items.get(a)!.list).toBe('next');
+  });
+  test('zurückholen: ganzes Projekt wieder aktiv', () => {
+    const p = S.createProject({ title: 'P' });
+    const a = S.capture('A', { list: 'next', projectId: p });
+    S.completeItem(a); S.completeProject(p, false);
+    S.reopenFromClosedProject(a, 'project');
+    expect(S.state.projects.get(p)).toMatchObject({ status: 'active', completed: null });
+    expect(S.state.items.get(a)).toMatchObject({ list: 'next', projectId: p });
+  });
+  test('zurückholen: nur die Aufgabe, vom Projekt gelöst; Projekt bleibt abgeschlossen', () => {
+    const p = S.createProject({ title: 'P' });
+    const a = S.capture('A', { list: 'next', projectId: p });
+    S.completeItem(a); S.completeProject(p, false);
+    S.reopenFromClosedProject(a, 'item');
+    expect(S.state.projects.get(p)!.status).toBe('done');
+    expect(S.state.items.get(a)).toMatchObject({ list: 'next', projectId: null, order: null });
+    expect(L.Q.next().map((i) => i.title)).toEqual(['A']);
   });
 });

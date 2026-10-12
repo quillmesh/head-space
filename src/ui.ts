@@ -6,14 +6,16 @@ import * as S from './store';
 import * as Sync from './sync';
 import { IS_TEST, storageKey } from './env';
 import { seedSample } from './sample';
-import { destroy as destroyDb, allEvents as getAllEvents, getMeta } from './db';
+import { destroy as destroyDb, allEvents as getAllEvents, getMeta, setMeta } from './db';
 
 declare const __APP_VERSION__: string;
 declare const __APP_BUILD__: string;
 export const APP_VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev';
 const APP_BUILD = typeof __APP_BUILD__ === 'string' ? __APP_BUILD__ : '';
 import type { Item, ListName, Project } from './types';
-import { changedFields, restorePoints, Q, addDays, all, daysSince, dueState, esc, fmtDate, fmtTs, initials, isOpen, orderConflicts, project, projColor, today, toClarify, type DueState } from './logic';
+import { changedFields, restorePoints, Q, addDays, all, colorKeyOf, daysSince, dueState, esc, fmtDate, fmtTs, inClosedProject, initials, isOpen, orderConflicts, project, projColor, PROJECT_COLORS, subtasksOf, today, toClarify, usedColorKeys, type DueState } from './logic';
+import { lastSeenVersion, notesSince, parseNotes, type ReleaseNote } from './notes';
+import NOTES_MD from '../RELEASE-NOTES.md' with { type: 'text' };
 import { ctxBadge, ctxLabel, ctxWithName, itemSymbol, noneBadge, waitBadge } from './icons';
 export { today } from './logic';
 
@@ -45,7 +47,11 @@ type Modal =
   | { kind: 'confirm'; text: string; label: string; run: () => void }
   | { kind: 'next-step'; projectId: string; fromId: string }
   | { kind: 'due'; id: string; target: 'item' | 'project' }
-  | { kind: 'conflict'; id: string };
+  | { kind: 'conflict'; id: string }
+  | { kind: 'color'; id: string }
+  | { kind: 'close-project'; id: string }
+  | { kind: 'reopen'; id: string }
+  | { kind: 'notes'; notes: ReleaseNote[] };
 let modal: Modal = null;
 
 // ---------- Navigation ----------
@@ -217,7 +223,7 @@ function projectRow(p: Project, status: string, icon = false): string {
   return card(`row ${projColor(p.id)}`, p.id, 'project', `
     ${icon ? '<span class="row-icon" aria-hidden="true">P</span>' : ''}
     <div class="row-main" data-action="open-project" data-id="${p.id}">
-      <button type="button" class="row-title" data-action="open-project" data-id="${p.id}">${esc(p.title)}</button>
+      <button type="button" class="row-title proj-title" data-action="open-project" data-id="${p.id}">${esc(p.title)}</button>
       <div class="row-meta proj-meta">
         ${dueSlot('project', p.id, p.due)}<span class="slot slot-status">${status}</span><span class="slot slot-rest">${p.outcome ? `<span class="chip muted">${esc(p.outcome.slice(0, 80))}</span>` : ''}</span>
       </div>
@@ -343,15 +349,20 @@ function viewProject(id: string): string {
   const other = its.filter((i) => i.list === 'someday' || i.list === 'reference');
   const done = its.filter((i) => i.list === 'done');
   const STATUS: Record<Project['status'], string> = { active: 'Aktiv', someday: 'Irgendwann/Vielleicht', done: 'Abgeschlossen', dropped: 'Verworfen' };
+  const closed = p.status === 'done' || p.status === 'dropped';
+  const back = p.status === 'someday' ? ['someday', 'Irgendwann/Vielleicht'] : closed ? ['done', 'Erledigt'] : ['projects', 'Projekte'];
   return `
-    <button class="back" data-action="go" data-view="${p.status === 'someday' ? 'someday' : 'projects'}">← ${p.status === 'someday' ? 'Irgendwann/Vielleicht' : 'Projekte'}</button>
-    <header class="view-head">
+    <button class="back" data-action="go" data-view="${back[0]}">← ${back[1]}</button>
+    <header class="view-head ${projColor(p.id)}">
       <div>
-        <h1>${esc(p.title)}</h1>
+        <h1 class="proj-title">${esc(p.title)}</h1>
         <p class="lede">${p.outcome ? `<span class="label">Ergebnis</span> ${esc(p.outcome)}` : 'Noch kein gewünschtes Ergebnis beschrieben.'}</p>
         ${p.due && (p.status === 'active' || p.status === 'someday') ? `<p class="head-meta">${dueChip(p.due)}</p>` : ''}
       </div>
-      <span class="pill status-${p.status}">${STATUS[p.status]}</span>
+      <div class="head-side">
+        <button type="button" class="btn small color-btn" data-action="pick-color" data-id="${p.id}" aria-label="Projektfarbe wählen"><i class="swatch-dot" aria-hidden="true"></i>Farbe</button>
+        <span class="pill status-${p.status}">${STATUS[p.status]}</span>
+      </div>
     </header>
     ${p.status === 'active' && Q.stalled(p) ? '<div class="callout warn">Dieses Projekt hat keinen nächsten Schritt. Was ist die nächste sichtbare, physische Handlung?</div>' : ''}
     ${p.status === 'active' || p.status === 'someday' ? `
@@ -373,7 +384,7 @@ function viewProject(id: string): string {
     <div class="actions-row">
       <button class="btn" data-action="edit-project" data-id="${p.id}">Bearbeiten</button>
       ${p.status === 'active' ? `<button class="btn" data-action="project-status" data-id="${p.id}" data-status="someday">Auf Irgendwann verschieben</button>
-        <button class="btn" data-action="project-status" data-id="${p.id}" data-status="done">Abschliessen</button>` : ''}
+        <button class="btn" data-action="close-project" data-id="${p.id}">Abschliessen</button>` : ''}
       ${p.status !== 'active' ? `<button class="btn" data-action="project-status" data-id="${p.id}" data-status="active">Aktivieren</button>` : ''}
       <button class="btn danger" data-action="delete-project" data-id="${p.id}">Projekt löschen</button>
     </div>`;
@@ -423,7 +434,7 @@ function viewSomeday(): string {
   const ps = Q.projects('someday');
   return `${head('Irgendwann/Vielleicht', 'Ideen und Wünsche ohne Verpflichtung. Schau sie bei der Wochendurchsicht an.')}
     ${ps.length ? `<h2 class="section">Projekte</h2><ul class="rows">${ps.map((p) => card(`row ${projColor(p.id)}`, p.id, 'project', `
-        <div class="row-main" data-action="open-project" data-id="${p.id}"><button type="button" class="row-title" data-action="open-project" data-id="${p.id}">${esc(p.title)}</button>${p.outcome ? `<span class="row-notes">${esc(p.outcome.slice(0, 80))}</span>` : ''}</div>
+        <div class="row-main" data-action="open-project" data-id="${p.id}"><button type="button" class="row-title proj-title" data-action="open-project" data-id="${p.id}">${esc(p.title)}</button>${p.outcome ? `<span class="row-notes">${esc(p.outcome.slice(0, 80))}</span>` : ''}</div>
         <button class="btn small" data-action="project-status" data-id="${p.id}" data-status="active">Aktivieren</button>`)).join('')}</ul>` : ''}
     ${its.length ? `${ps.length ? '<h2 class="section">Einzelne Ideen</h2>' : ''}${list(its)}` : ''}
     ${!its.length && !ps.length ? empty('Noch leer.', 'Beim Klären kannst du alles, was nicht jetzt dran ist, hierher schieben.') : ''}`;
@@ -439,9 +450,24 @@ function viewDone(): string {
   const its = Q.done();
   const trash = Q.trash();
   const shown = its.slice(0, 100);
+  const doneP = Q.closedProjects('done');
+  const dropped = Q.closedProjects('dropped');
+  // Abgeschlossene Projekte als eine Karte (0.12); ein Klick zeigt die Aufgaben in der Projektansicht
+  const pcard = (p: Project, label: string) => {
+    const n = all().filter((i) => i.projectId === p.id).length;
+    return card(`row ${projColor(p.id)}`, p.id, 'project', `
+      <div class="row-main" data-action="open-project" data-id="${p.id}">
+        <button type="button" class="row-title proj-title" data-action="open-project" data-id="${p.id}">${esc(p.title)}</button>
+        <div class="row-meta proj-meta"><span class="chip">${label}${p.completed ? ` ${fmtTs(p.completed)}` : ''}</span><span class="chip">${n} ${n === 1 ? 'Aufgabe' : 'Aufgaben'}</span></div>
+      </div>`, false);
+  };
+  const anyProjects = doneP.length + dropped.length > 0;
   return `${head('Erledigt', 'Was du abgeschlossen hast. Ein Klick auf den Haken holt einen Eintrag zurück.')}
-    ${its.length ? list(shown, { restore: true }) : empty('Noch nichts erledigt.', 'Abgehakte Schritte sammeln sich hier.')}
+    ${doneP.length ? `<h2 class="section">Abgeschlossene Projekte <span class="num">${doneP.length}</span></h2><ul class="rows">${doneP.map((p) => pcard(p, 'abgeschlossen')).join('')}</ul>` : ''}
+    ${anyProjects && its.length ? '<h2 class="section">Einzelne Aufgaben</h2>' : ''}
+    ${its.length ? list(shown, { restore: true }) : anyProjects ? '' : empty('Noch nichts erledigt.', 'Abgehakte Schritte sammeln sich hier.')}
     ${its.length > shown.length ? `<p class="hint">Die letzten ${shown.length} von ${its.length} werden angezeigt.</p>` : ''}
+    ${dropped.length ? `<h2 class="section">Verworfene Projekte <span class="num">${dropped.length}</span></h2><ul class="rows">${dropped.map((p) => pcard(p, 'verworfen')).join('')}</ul>` : ''}
     ${trash.length ? `<h2 class="section">Papierkorb <span class="num">${trash.length}</span></h2>
       <ul class="rows">${trash.map((i) => card('row is-done', i.id, 'item', `
         <div class="row-main" data-action="edit" data-id="${i.id}"><button type="button" class="row-title" data-action="edit" data-id="${i.id}">${esc(i.title)}</button></div>
@@ -682,6 +708,10 @@ function renderModal() {
   else if (modal.kind === 'next-step') html = nextStepHtml(modal.projectId, modal.fromId);
   else if (modal.kind === 'due') html = dueHtml(modal.id, modal.target);
   else if (modal.kind === 'conflict') html = conflictHtml(modal.id);
+  else if (modal.kind === 'color') html = colorHtml(modal.id);
+  else if (modal.kind === 'close-project') html = closeProjectHtml(modal.id);
+  else if (modal.kind === 'reopen') html = reopenHtml(modal.id);
+  else if (modal.kind === 'notes') html = notesHtml(modal.notes);
   else if (modal.kind === 'confirm') html = `
     <div class="sheet">
       <p>${esc(modal.text)}</p>
@@ -830,7 +860,7 @@ function nextStepHtml(pid: string, fromId: string): string {
         <div class="field"><label for="ns-tickler">Erst ab</label><input id="ns-tickler" name="tickler" type="date" min="${today()}"></div>
       </div>
       <div class="actions-row spread">
-        <button type="button" class="btn" data-action="project-status" data-id="${p.id}" data-status="done">Projekt ist fertig</button>
+        <button type="button" class="btn" data-action="close-project" data-id="${p.id}">Projekt ist fertig</button>
         <button class="btn primary" type="submit">Schritt speichern</button>
       </div>
     </form>`;
@@ -855,6 +885,91 @@ function dueHtml(id: string, target: 'item' | 'project'): string {
     </form>`;
 }
 
+/** Projektfarbe wählen (0.12): Haken = dieses Projekt, Ring = schon bei einem anderen Projekt; mehrfach erlaubt */
+function colorHtml(pid: string): string {
+  const p = project(pid);
+  if (!p) return '';
+  const cur = colorKeyOf(pid);
+  const used = usedColorKeys(pid);
+  return `
+    <div class="sheet">
+      <div class="sheet-head"><h2>Projektfarbe</h2><button type="button" class="link" data-action="close">Schliessen</button></div>
+      <div class="palette" role="group" aria-label="Farben">
+        ${PROJECT_COLORS.map((c) => {
+          const on = c.key === cur, u = used.has(c.key);
+          const state = on ? ', gewählt' : u ? ', schon bei einem anderen Projekt' : '';
+          return `<button type="button" class="swatch pcx pc-${c.key}${on ? ' is-current' : ''}${u ? ' is-used' : ''}" data-action="set-color" data-id="${p.id}" data-key="${c.key}" aria-pressed="${on}" aria-label="${c.name}${state}" title="${c.name}${state}"><i aria-hidden="true">${on ? '✓' : ''}</i><span>${c.name}</span></button>`;
+        }).join('')}
+      </div>
+      <p class="hint legend"><span><i class="lg lg-cur" aria-hidden="true"></i>Haken: dieses Projekt</span><span><i class="lg lg-used" aria-hidden="true"></i>Ring: schon bei einem anderen Projekt</span></p>
+    </div>`;
+}
+
+/** Rückfrage beim Abschliessen eines Projekts mit offenen Aufgaben (0.12) */
+function closeProjectHtml(pid: string): string {
+  const p = project(pid);
+  if (!p) return '';
+  const open = Q.openInProject(pid);
+  return `
+    <div class="sheet">
+      <div class="sheet-head"><h2>Projekt abschliessen</h2><button type="button" class="link" data-action="close">Abbrechen</button></div>
+      <p><strong>${esc(p.title)}</strong> hat noch ${open.length === 1 ? 'eine offene Aufgabe' : `${open.length} offene Aufgaben`}:</p>
+      <ul class="conflict-list">${open.slice(0, 8).map((i) => `<li>${esc(i.title)}</li>`).join('')}${open.length > 8 ? `<li class="muted">… und ${open.length - 8} weitere</li>` : ''}</ul>
+      <div class="stack-btns">
+        <button type="button" class="btn primary" data-action="close-project-go" data-id="${p.id}" data-with="1">Mit erledigen und abschliessen</button>
+        <button type="button" class="btn" data-action="close-project-go" data-id="${p.id}" data-with="0">Offen lassen und abschliessen</button>
+      </div>
+    </div>`;
+}
+
+/** Aufgabe eines abgeschlossenen/verworfenen Projekts zurückholen (0.12) */
+function reopenHtml(id: string): string {
+  const it = S.state.items.get(id);
+  const p = project(it?.projectId ?? null);
+  if (!it || !p) return '';
+  const word = p.status === 'dropped' ? 'verworfen' : 'abgeschlossen';
+  return `
+    <div class="sheet">
+      <div class="sheet-head"><h2>Projekt ist ${word}</h2><button type="button" class="link" data-action="close">Abbrechen</button></div>
+      <p><strong>${esc(it.title)}</strong> gehört zum ${word}en Projekt <strong>${esc(p.title)}</strong>. Was soll wieder aktiv werden?</p>
+      <div class="stack-btns">
+        <button type="button" class="btn primary" data-action="reopen-go" data-id="${it.id}" data-mode="project">Ganzes Projekt wieder aktivieren</button>
+        <button type="button" class="btn" data-action="reopen-go" data-id="${it.id}" data-mode="item">Nur diese Aufgabe</button>
+      </div>
+      <p class="hint">„Nur diese Aufgabe“ löst sie vom Projekt; sie steht dann einzeln in den Nächsten Schritten.</p>
+    </div>`;
+}
+
+/** „Was ist neu“ nach einem Update (0.12), aus RELEASE-NOTES.md */
+const md = (t: string) => esc(t).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+function notesHtml(notes: ReleaseNote[]): string {
+  return `
+    <div class="sheet notes-sheet">
+      <span class="eyebrow">Neu in Version ${esc(notes[0]?.version ?? APP_VERSION)}</span>
+      <h2>Was ist neu</h2>
+      ${notes.map((n, i) => `${notes.length > 1 ? `<h3 class="notes-version">${i === 0 ? 'Version' : 'Davor: Version'} ${esc(n.version)}</h3>` : ''}<ul class="notes-list">${n.points.map((x) => `<li>${md(x)}</li>`).join('')}</ul>`).join('')}
+      <div class="actions-row end"><button type="button" class="btn primary" data-action="notes-close">Alles klar</button></div>
+    </div>`;
+}
+
+/** Eine Zeile Unteraufgabe im Dialog. sid beginnt mit „neu-“, solange sie nicht gespeichert ist. */
+function subRow(itemId: string, sid: string, title: string, done: boolean): string {
+  return `<li class="sub-row${done ? ' is-done' : ''}" data-sid="${esc(sid)}">
+    <button type="button" class="check sub-check${done ? ' is-done' : ''}" data-action="sub-toggle" data-id="${itemId}" data-sid="${esc(sid)}" aria-pressed="${done}" aria-label="${done ? 'Wieder offen' : 'Abhaken'}"></button>
+    <label class="sr-only" for="sub-${esc(sid)}">Unteraufgabe</label>
+    <input id="sub-${esc(sid)}" class="sub-input" data-sid="${esc(sid)}" value="${esc(title)}" placeholder="Unteraufgabe" autocomplete="off" enterkeyhint="next">
+    <button type="button" class="sub-del" data-action="sub-del" data-sid="${esc(sid)}" aria-label="Unteraufgabe entfernen" title="Entfernen">×</button>
+  </li>`;
+}
+function subtasksField(it: Item): string {
+  const subs = subtasksOf(it);
+  if (!subs.length) return `<div class="field subs" data-subs="${it.id}"><button type="button" class="btn small sub-start" data-action="sub-start" data-id="${it.id}">Unteraufgaben hinzufügen</button></div>`;
+  return `<div class="field subs" data-subs="${it.id}"><span class="field-label">Unteraufgaben</span>
+    <ul class="sub-list">${subs.map((x) => subRow(it.id, x.id, x.title, x.done)).join('')}</ul>
+    <button type="button" class="btn small sub-add" data-action="sub-add" data-id="${it.id}">+ Unteraufgabe</button></div>`;
+}
+let newSubCounter = 0;
+
 function editHtml(id: string): string {
   const it = S.state.items.get(id);
   if (!it) return '';
@@ -864,6 +979,7 @@ function editHtml(id: string): string {
       <div class="sheet-head"><h2>Eintrag bearbeiten</h2><button type="button" class="link" data-action="close">Schliessen</button></div>
       <div class="field"><label for="e-title">Titel</label><input id="e-title" name="title" value="${esc(it.title)}" required></div>
       <div class="field"><label for="e-notes">Notizen</label><textarea id="e-notes" name="notes" rows="4">${esc(it.notes)}</textarea></div>
+      ${subtasksField(it)}
       <div class="grid2">
         <div class="field"><label for="e-list">Liste</label><select id="e-list" name="list">${lists.map((l) => `<option value="${l}"${l === it.list ? ' selected' : ''}>${LIST_LABEL[l]}</option>`).join('')}</select></div>
         <div class="field"><label for="e-ctx">Kontext</label><select id="e-ctx" name="context">${contextOptions(it.context)}</select></div>
@@ -1115,6 +1231,16 @@ const short = (t: string) => (t.length > 34 ? t.slice(0, 32) + '…' : t);
  * Erledigen mit Rückgängig. War es der letzte offene Schritt eines aktiven Projekts,
  * fragt die App gleich nach dem nächsten Schritt.
  */
+/** Projekt abschliessen (mit oder ohne offene Aufgaben), mit Rückgängig */
+function closeProject(pid: string, withOpen: boolean) {
+  const u = S.completeProject(pid, withOpen);
+  if (!u) return;
+  modal = null; renderModal();
+  showUndo(withOpen && u.completed.length ? `Projekt abgeschlossen, ${u.completed.length} ${u.completed.length === 1 ? 'Aufgabe' : 'Aufgaben'} erledigt.` : 'Projekt abgeschlossen.',
+    () => { S.undoCompleteProject(pid, u); flash(pid); });
+  if (route.view === 'project' && route.id === pid) go('projects');
+}
+
 function completeWithUndo(id: string, extra: Partial<Item> = {}) {
   const it = S.state.items.get(id);
   if (!it) return;
@@ -1432,7 +1558,75 @@ function onClick(e: MouseEvent) {
       toast(`Nächster Schritt: ${short(c.title)}`);
       break;
     }
-    case 'restore': S.restoreItem(id); toast('Zurückgeholt.'); break;
+    case 'restore': {
+      const it = S.state.items.get(id);
+      // Aufgabe eines abgeschlossenen/verworfenen Projekts: fragen, was wieder aktiv wird (0.12)
+      if (it && it.list === 'done' && inClosedProject(it)) { modal = { kind: 'reopen', id }; renderModal(); break; }
+      S.restoreItem(id); toast('Zurückgeholt.');
+      break;
+    }
+    case 'reopen-go': {
+      const mode = el.dataset.mode === 'project' ? 'project' : 'item';
+      const it = S.state.items.get(id);
+      modal = null; renderModal();
+      if (!it) break;
+      S.reopenFromClosedProject(id, mode);
+      if (mode === 'project') { toast('Projekt wieder aktiv.'); if (it.projectId) go('project', it.projectId); }
+      else toast(`Wieder offen: ${short(it.title)}`);
+      break;
+    }
+    case 'pick-color': modal = { kind: 'color', id }; renderModal(); break;
+    case 'set-color': {
+      const key = el.dataset.key ?? null;
+      modal = null; renderModal();
+      const pr = project(id);
+      if (pr && pr.color !== key) S.patchProject(id, { color: key });
+      break;
+    }
+    case 'close-project': {
+      // Offene Aufgaben? Dann nachfragen (0.12), sonst direkt abschliessen
+      if (Q.openInProject(id).length) { modal = { kind: 'close-project', id }; renderModal(); break; }
+      closeProject(id, false);
+      break;
+    }
+    case 'close-project-go': modal = null; renderModal(); closeProject(id, el.dataset.with === '1'); break;
+    case 'notes-close': modal = null; renderModal(); void setMeta('notesSeen', APP_VERSION); break;
+    case 'sub-start': {
+      const box = el.closest<HTMLElement>('.subs');
+      if (!box) break;
+      const sid = `neu-${++newSubCounter}`;
+      box.innerHTML = `<span class="field-label">Unteraufgaben</span><ul class="sub-list">${subRow(id, sid, '', false)}</ul>
+        <button type="button" class="btn small sub-add" data-action="sub-add" data-id="${id}">+ Unteraufgabe</button>`;
+      box.querySelector<HTMLInputElement>('.sub-input')?.focus();
+      break;
+    }
+    case 'sub-add': {
+      const ul = el.closest('.subs')?.querySelector('.sub-list');
+      if (!ul) break;
+      const sid = `neu-${++newSubCounter}`;
+      ul.insertAdjacentHTML('beforeend', subRow(id, sid, '', false));
+      ul.querySelector<HTMLInputElement>(`[data-sid="${sid}"].sub-input`)?.focus();
+      break;
+    }
+    case 'sub-toggle': {
+      // Abhaken wird sofort gespeichert und bleibt sichtbar (durchgestrichen); neue erst mit „Speichern“
+      const sid = el.dataset.sid!;
+      const rowEl = el.closest('.sub-row');
+      const on = !el.classList.contains('is-done');
+      el.classList.toggle('is-done', on); rowEl?.classList.toggle('is-done', on);
+      el.setAttribute('aria-pressed', String(on)); el.setAttribute('aria-label', on ? 'Wieder offen' : 'Abhaken');
+      if (!sid.startsWith('neu-')) S.patchSubtask(id, sid, { done: on });
+      break;
+    }
+    case 'sub-del': {
+      const rowEl = el.closest<HTMLElement>('.sub-row');
+      const form = el.closest('form');
+      if (!rowEl || !form) break;
+      const sid = el.dataset.sid!;
+      if (!sid.startsWith('neu-')) form.insertAdjacentHTML('beforeend', `<input type="hidden" name="sub-del" value="${esc(sid)}">`);
+      rowEl.remove();
+      break;
+    }
     case 'edit': modal = { kind: 'edit', id }; renderModal(); break;
     case 'trash': {
       const it = S.state.items.get(id);
@@ -1445,7 +1639,9 @@ function onClick(e: MouseEvent) {
       renderModal();
       break;
     case 'confirm': if (modal?.kind === 'confirm') { const run = modal.run; modal = null; renderModal(); run(); } break;
-    case 'close': modal = null; renderModal(); break;
+    case 'close':
+      if (modal?.kind === 'notes') void setMeta('notesSeen', APP_VERSION);
+      modal = null; renderModal(); break;
     case 'theme': setTheme(el.dataset.value as Theme); break;
     case 'check-update': {
       if (!appActions) { toast('Updates werden in dieser Ansicht nicht geprüft.'); break; }
@@ -1655,8 +1851,23 @@ async function onSubmit(e: SubmitEvent) {
         context: val(form, 'context') || null, projectId: val(form, 'projectId') || null,
         waitingFor: val(form, 'waitingFor') || null, tickler: val(form, 'tickler') || null, due: val(form, 'due') || null,
       });
+      // Unteraufgaben (0.12): neue anlegen, geänderte Titel und entfernte speichern. Abhaken ist schon gespeichert.
+      const subOps: (() => void)[] = [];
+      const known = new Map(subtasksOf(it).map((x) => [x.id, x]));
+      form.querySelectorAll<HTMLInputElement>('.sub-input').forEach((inp) => {
+        const sid = inp.dataset.sid!, title = inp.value.trim();
+        const done = !!inp.closest('.sub-row')?.classList.contains('is-done');
+        if (sid.startsWith('neu-')) {
+          if (title) subOps.push(() => { const n = S.addSubtask(id, title); if (done) S.patchSubtask(id, n, { done: true }); });
+        } else if (known.has(sid)) {
+          if (!title) subOps.push(() => S.patchSubtask(id, sid, { deleted: true }));
+          else if (title !== known.get(sid)!.title) subOps.push(() => S.patchSubtask(id, sid, { title }));
+        }
+      });
+      new FormData(form).getAll('sub-del').forEach((sid) => { if (known.has(String(sid))) subOps.push(() => S.patchSubtask(id, String(sid), { deleted: true })); });
       modal = null; renderModal();
-      if (!Object.keys(patch).length) { toast('Keine Änderungen.'); break; }
+      if (subOps.length) S.batch(() => subOps.forEach((f) => f()));
+      if (!Object.keys(patch).length) { toast(subOps.length ? 'Gespeichert.' : 'Keine Änderungen.'); break; }
       if (list === 'done' && it.list !== 'done') {
         delete patch.list;
         completeWithUndo(id, patch);
@@ -1794,4 +2005,17 @@ export function mount() {
 }
 
 /** Nur für Unit-Tests (tests/unit/karten.test.ts): Karten-HTML ohne Browser prüfen. */
-export const renderForTests = { row, projectRow };
+/** „Was ist neu“ einmal nach einem Update (0.12). Neues Gerät: nichts, nur merken. */
+export async function showNewsIfUpdated() {
+  try {
+    const seen = await getMeta<string>('notesSeen');
+    const log = (await getMeta<{ v: string; at: number }[]>('versionLog')) ?? [];
+    const notes = notesSince(parseNotes(NOTES_MD), lastSeenVersion(seen, log, APP_VERSION), APP_VERSION);
+    if (!notes.length) { if (seen !== APP_VERSION && /^\d/.test(APP_VERSION)) await setMeta('notesSeen', APP_VERSION); return; }
+    if (modal) return; // ein anderer Dialog ist offen: beim nächsten Start
+    modal = { kind: 'notes', notes };
+    renderModal();
+  } catch { /* nicht kritisch */ }
+}
+
+export const renderForTests = { row, projectRow, colorHtml, viewDone, viewProject, editHtml };

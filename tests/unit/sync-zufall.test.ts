@@ -25,10 +25,10 @@ function rng(seed: number) {
 // So bleibt ein Ablauf gültig, wenn beim Verkleinern Schritte wegfallen.
 type Dev = 'A' | 'B';
 type Step =
-  | { dev: Dev; op: 'capture' | 'title' | 'notes' | 'due' | 'complete' | 'restore' | 'trash' | 'empty' | 'project' | 'step' | 'move' | 'delproject'; k: number; m: number; dt: number }
+  | { dev: Dev; op: 'capture' | 'title' | 'notes' | 'due' | 'complete' | 'restore' | 'trash' | 'empty' | 'project' | 'step' | 'move' | 'delproject' | 'sub' | 'subdone' | 'color' | 'closeproject' | 'reopen'; k: number; m: number; dt: number }
   | { op: 'sync'; dir: 'AB' | 'BA' | 'both' };
 
-const DEV_OPS = ['capture', 'capture', 'title', 'notes', 'due', 'complete', 'restore', 'trash', 'trash', 'empty', 'project', 'step', 'step', 'move', 'delproject'] as const;
+const DEV_OPS = ['capture', 'capture', 'title', 'notes', 'due', 'complete', 'restore', 'trash', 'trash', 'empty', 'project', 'step', 'step', 'move', 'delproject', 'sub', 'sub', 'subdone', 'color', 'closeproject', 'reopen'] as const;
 
 function plan(seed: number, length: number): Step[] {
   const r = rng(seed);
@@ -83,6 +83,21 @@ async function act(d: Device, s: Extract<Step, { dev: Dev }>) {
       break;
     }
     case 'delproject': if (pr) S.deleteProject(pr.id); break;
+    // 0.12: Unteraufgaben, Projektfarbe, Projekt abschliessen und Aufgabe zurückholen
+    case 'sub': if (it) S.addSubtask(it.id, `Unter ${s.m}`); break;
+    case 'subdone': {
+      const sub = it && nth((it.subtasks ?? []).filter((x) => !x.deleted), s.m);
+      if (it && sub) S.patchSubtask(it.id, sub.id, s.m % 4 === 0 ? { deleted: true } : { done: !sub.done, title: `U ${s.m}` });
+      break;
+    }
+    case 'color': if (pr) S.patchProject(pr.id, { color: ['wein', 'marine', 'minze', null][s.m % 4] }); break;
+    case 'closeproject': if (pr) S.completeProject(pr.id, s.m % 2 === 0); break;
+    case 'reopen': {
+      const done = [...S.state.items.values()].filter((i) => !i.deleted && i.list === 'done' && i.projectId && S.state.projects.get(i.projectId)?.status === 'done');
+      const d = nth(done, s.m);
+      if (d) S.reopenFromClosedProject(d.id, s.m % 2 ? 'project' : 'item');
+      break;
+    }
   }
   await save(d);
 }
@@ -128,7 +143,7 @@ async function run(steps: Step[], skewB: number): Promise<Check[]> {
   checks.push({ name: 'Idempotent: erneuter Abgleich bringt keine neuen Ereignisse und ändert nichts', ok: added === 0 && snapshot() === snapA });
 
   // Endgültig Gelöschtes bleibt leer (auch wenn ein anderes Gerät es danach noch geändert hat)
-  const leaking = [...S.state.items.values()].filter((i) => i.deleted && (i.title !== '' || i.notes !== ''));
+  const leaking = [...S.state.items.values()].filter((i) => i.deleted && (i.title !== '' || i.notes !== '' || (i.subtasks ?? []).length > 0));
   const leakingP = [...S.state.projects.values()].filter((p) => p.deleted && (p.title !== '' || p.outcome !== ''));
   checks.push({ name: 'Endgültig Gelöschtes bleibt leer', ok: !leaking.length && !leakingP.length, detail: JSON.stringify([...leaking, ...leakingP]) });
 

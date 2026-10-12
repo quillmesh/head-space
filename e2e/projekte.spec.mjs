@@ -123,3 +123,100 @@ test.describe('Projekt auf dem Handy', () => {
     await expect(page.locator('#main li.row.swipe-open')).toHaveCount(0);
   });
 });
+
+// ---------- 0.12: Projektfarbe zeigen und wählen ----------
+const farbe = (loc) => loc.evaluate((el) => getComputedStyle(el).color);
+
+test.describe('Projektfarbe auf dem Handy (0.12)', () => {
+  test.use(HANDY);
+
+  test('Name in der Liste und Titel der Ansicht farbig; Farbe wählen, Ring zeigt benutzte, mehrfach erlaubt', async ({ page }) => {
+    await gehe(page, 'test/#projects');
+    const velo = page.locator('#main .row-title', { hasText: 'Velo winterfit' });
+    const tinte = await farbe(page.locator('#main h1'));
+    const inListe = await farbe(velo);
+    expect(inListe, 'Projektname nicht in Textfarbe').not.toBe(tinte);
+    expect(await farbe(page.locator('#main .row-title', { hasText: 'Ferien' })), 'Projekte verschieden gefärbt').not.toBe(inListe);
+    await velo.tap();
+    await expect(page.locator('#main h1.proj-title')).toHaveText('Velo winterfit machen');
+    expect(await farbe(page.locator('#main h1')), 'Titel in derselben Farbe wie in der Liste').toBe(inListe);
+
+    await page.locator('[data-action=pick-color]').tap();
+    await expect(page.locator('#modal .swatch')).toHaveCount(20);
+    await expect(page.locator('#modal .swatch.is-current'), 'heutige (automatische) Farbe mit Haken').toHaveAttribute('data-key', 'blau');
+    await expect(page.locator('#modal .swatch.is-used'), 'Ring bei den Farben der 4 anderen Projekte').toHaveCount(4);
+    await expect(page.locator('#modal .swatch[data-key=magenta]')).toHaveClass(/is-used/);
+    await page.locator('#modal .swatch[data-key=wein]').tap();
+    await expect(page.locator('#modal')).toBeHidden();
+    await expect(page.locator('#main .view-head')).toHaveClass(/pc-wein/);
+    await expect(page.locator('#main .swatch-dot')).toHaveCSS('background-color', 'rgb(156, 47, 91)');
+    const neu = await farbe(page.locator('#main h1'));
+    expect(neu).not.toBe(inListe);
+
+    await page.reload(); await page.locator('#main h1').waitFor();
+    await expect(page.locator('#main .view-head'), 'bleibt nach Neuladen').toHaveClass(/pc-wein/);
+    await gehe(page, 'test/#projects');
+    expect(await farbe(velo), 'Liste zeigt die gewählte Farbe').toBe(neu);
+
+    // dieselbe Farbe für ein zweites Projekt: erlaubt, mit Ring markiert
+    await page.locator('#main .row-title', { hasText: 'Ferien' }).tap();
+    await page.locator('[data-action=pick-color]').tap();
+    await expect(page.locator('#modal .swatch[data-key=wein]')).toHaveClass(/is-used/);
+    await page.locator('#modal .swatch[data-key=wein]').tap();
+    await expect(page.locator('#main .view-head')).toHaveClass(/pc-wein/);
+  });
+});
+
+// ---------- 0.12: Abschliessen, „Erledigt“ und Zurückholen ----------
+test.describe('Abgeschlossene Projekte auf dem Handy (0.12)', () => {
+  test.use(HANDY);
+
+  test('Abschliessen fragt nach offenen Aufgaben; „Erledigt“ zeigt nur das Projekt; Zurückholen fragt', async ({ page }) => {
+    await oeffneVelo(page);
+    await page.locator('[data-action=close-project]').tap();
+    await expect(page.locator('#modal')).toContainText('3 offene Aufgaben');
+    await page.locator('#modal [data-action=close-project-go][data-with="1"]').tap();
+    await expect(page.locator('#undo')).toContainText('3 Aufgaben erledigt');
+
+    await gehe(page, 'test/#done');
+    await expect(page.locator('#main h2.section', { hasText: 'Abgeschlossene Projekte' })).toHaveCount(1);
+    await expect(page.locator('#main .row-title.proj-title', { hasText: 'Velo winterfit' })).toHaveCount(1);
+    await expect(karte(page, 'Velomechaniker'), 'Aufgaben nicht einzeln').toHaveCount(0);
+
+    await page.locator('#main .row-title', { hasText: 'Velo winterfit' }).tap();
+    await expect(page.locator('#main .back')).toContainText('Erledigt');
+    await expect(karte(page, 'Velomechaniker')).toHaveCount(1);
+
+    // nur diese Aufgabe: vom Projekt gelöst, Projekt bleibt abgeschlossen
+    await karte(page, 'Velomechaniker').locator('[data-action=restore]').tap();
+    await expect(page.locator('#modal')).toContainText('Was soll wieder aktiv werden?');
+    await page.locator('#modal [data-mode=item]').tap();
+    await gehe(page, 'test/#next');
+    await expect(karte(page, 'Velomechaniker')).toHaveCount(1);
+    await expect(karte(page, 'Velomechaniker').locator('.row-eyebrow'), 'ohne Projekt').toHaveCount(0);
+    await gehe(page, 'test/#done');
+    await expect(page.locator('#main .row-title', { hasText: 'Velo winterfit' }), 'Projekt bleibt abgeschlossen').toHaveCount(1);
+
+    // ganzes Projekt wieder aktivieren
+    await page.locator('#main .row-title', { hasText: 'Velo winterfit' }).tap();
+    await karte(page, 'Kette ölen').locator('[data-action=restore]').tap();
+    await page.locator('#modal [data-mode=project]').tap();
+    await expect(page.locator('#main .pill.status-active')).toHaveCount(1);
+    await gehe(page, 'test/#projects');
+    await expect(page.locator('#main .row-title', { hasText: 'Velo winterfit' })).toHaveCount(1);
+    await gehe(page, 'test/#next');
+    await expect(karte(page, 'Kette ölen')).toHaveCount(1);
+  });
+
+  test('Abschliessen „offen lassen“: offene Aufgaben bleiben offen, verschwinden aber aus den Listen', async ({ page }) => {
+    await gehe(page, 'test/#projects');
+    await page.locator('#main .row-title', { hasText: 'Wohnzimmer' }).tap();
+    await page.locator('[data-action=close-project]').tap();
+    await page.locator('#modal [data-action=close-project-go][data-with="0"]').tap();
+    await gehe(page, 'test/#next');
+    await expect(karte(page, 'Farbmuster')).toHaveCount(0);
+    await gehe(page, 'test/#done');
+    await page.locator('#main .row-title', { hasText: 'Wohnzimmer' }).tap();
+    await expect(karte(page, 'Farbmuster').locator('.check:not(.is-done)'), 'noch offen').toHaveCount(1);
+  });
+});

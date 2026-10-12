@@ -20,3 +20,67 @@
 /* Projektfarbe auf hellem Grund etwas dunkler, damit die Überzeile gut lesbar bleibt */
 @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .row-eyebrow { color: color-mix(in srgb, var(--pc) 82%, var(--ink)); } }
 :root[data-theme="light"] .row-eyebrow { color: color-mix(in srgb, var(--pc) 82%, var(--ink)); }
+
+/* ---------- 0.12: selbst gewählte Projektfarben (Schlüssel aus PROJECT_COLORS in logic.ts) ---------- */
+.pc-orange { --pcv: #cb4b16; }
+.pc-gelb { --pcv: #b58900; }
+.pc-gruen { --pcv: #859900; }
+.pc-cyan { --pcv: #2aa198; }
+.pc-blau { --pcv: #268bd2; }
+.pc-violett { --pcv: #6c71c4; }
+.pc-magenta { --pcv: #d33682; }
+.pc-wald { --pcv: #3d7a2a; }
+.pc-petrol { --pcv: #1f6f78; }
+.pc-marine { --pcv: #2b4f8f; }
+.pc-purpur { --pcv: #7b3f9e; }
+.pc-rosa { --pcv: #e47fb0; }
+.pc-himmel { --pcv: #6cb4ee; }
+.pc-minze { --pcv: #4fb58a; }
+.pc-limette { --pcv: #b4c43c; }
+.pc-honig { --pcv: #e3a72f; }
+.pc-lachs { --pcv: #ec8a5a; }
+.pc-braun { --pcv: #8b5a2b; }
+.pc-schiefer { --pcv: #586e75; }
+.pc-wein { --pcv: #9c2f5b; }
+.pcx { --pc: var(--pcv); }
+/* Auf dunklem Grund heller, damit auch dunkle Farben (Marine, Wein) lesbar bleiben */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pcx { --pc: color-mix(in srgb, var(--pcv) 76%, #eee8d5); } }
+:root[data-theme="dark"] .pcx { --pc: color-mix(in srgb, var(--pcv) 76%, #eee8d5); }
+
+/* Projektname in der Projektliste und Titel der Projektansicht in der Projektfarbe (Wunsch 1, Variante B) */
+.proj-title { color: color-mix(in srgb, var(--pc) 82%, var(--ink)); }
+.view-head .head-side { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
+.color-btn { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 999px; }
+.swatch-dot { width: 1rem; height: 1rem; border-radius: 50%; background: var(--pc); display: inline-block; flex: none; }
+
+/* Farbwahl: 5 Spalten, Haken = dieses Projekt, Ring = schon bei einem anderen Projekt */
+.palette { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.9rem 0.5rem; padding: var(--s2) 0; }
+.swatch { border: 0; background: none; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; cursor: pointer; color: var(--muted); font-size: 0.6875rem; min-width: 0; }
+.swatch i { width: 2.6rem; height: 2.6rem; border-radius: 50%; background: var(--pc); display: flex; align-items: center; justify-content: center; color: #fff; font-style: normal; font-weight: 800; font-size: 1.1rem; }
+.swatch.is-used i { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--muted); }
+.swatch.is-current i { box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--ink); }
+.swatch:focus-visible i { outline: 2px solid var(--focus); outline-offset: 7px; }
+.legend { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); margin: 0; }
+.legend span { display: inline-flex; align-items: center; gap: 0.45rem; }
+.lg { width: 0.85rem; height: 0.85rem; border-radius: 50%; display: inline-block; background: var(--sunken); }
+.lg-cur { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+.lg-used { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--muted); }
+
+/* Rückfragen mit mehreren Wegen untereinander */
+.stack-btns { display: flex; flex-direction: column; gap: var(--s2); }
+.stack-btns .btn { width: 100%; justify-content: center; }
+
+/* Unteraufgaben im Dialog (Wunsch 5): abgehakt bleibt sichtbar, durchgestrichen */
+.subs { gap: var(--s2); }
+.sub-start, .sub-add { align-self: flex-start; }
+.sub-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s2); }
+.sub-row { display: flex; align-items: center; gap: var(--s2); }
+.sub-row .check { margin: 0; flex: none; }
+.sub-input { flex: 1; min-width: 0; }
+.sub-row.is-done .sub-input { text-decoration: line-through; color: var(--muted); }
+.sub-del { border: 0; background: none; color: var(--muted); font-size: 1.25rem; line-height: 1; padding: 0.4rem 0.5rem; cursor: pointer; min-width: 2.2rem; min-height: 2.2rem; }
+.sub-del:hover { color: var(--warn); }
+
+/* Was ist neu */
+.notes-list { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: var(--s2); }
+.notes-version { font-size: 0.875rem; margin: var(--s2) 0 0; color: var(--muted); }

@@ -12,6 +12,10 @@ const STATES = [
   ...VIEWS.map((v) => [v, '#' + v, null]),
   ['projekt', '#projects', async (p) => { await p.locator('#main .row-title', { hasText: 'Velo winterfit' }).first().tap({ timeout: 3000 }); await p.locator('#step-input').waitFor({ timeout: 3000 }); }],
   ['bearbeiten', '#waiting', async (p) => { await p.locator('#main .row-title', { hasText: 'Lisa' }).first().tap({ timeout: 3000 }); await p.locator('#e-title').waitFor({ timeout: 3000 }); }],
+  // 0.12: Farbwahl, Unteraufgaben, Rückfrage beim Abschliessen
+  ['farbwahl', '#projects', async (p) => { await p.locator('#main .row-title', { hasText: 'Velo winterfit' }).first().tap({ timeout: 3000 }); await p.locator('[data-action=pick-color]').tap({ timeout: 3000 }); await p.locator('#modal .palette').waitFor({ timeout: 3000 }); }],
+  ['unteraufgaben', '#projects', async (p) => { await p.locator('#main .row-title', { hasText: 'Velo winterfit' }).first().tap({ timeout: 3000 }); await p.locator('#main .row-title', { hasText: 'Kette ölen' }).tap({ timeout: 3000 }); await p.locator('#modal .sub-list').waitFor({ timeout: 3000 }); }],
+  ['abschliessen', '#projects', async (p) => { await p.locator('#main .row-title', { hasText: 'Velo winterfit' }).first().tap({ timeout: 3000 }); await p.locator('[data-action=close-project]').tap({ timeout: 3000 }); await p.locator('#modal .stack-btns').waitFor({ timeout: 3000 }); }],
   ['klären', '#inbox', async (p) => { await p.locator('[data-action=clarify-first]').tap({ timeout: 3000 }); await p.locator('#clarify-title').waitFor({ timeout: 3000 }); }],
   ['menü', '#inbox', async (p) => { if (await p.locator('.menu-btn').isVisible()) { await p.locator('.menu-btn').tap(); await animationenFertig(p); } }],
   ['schnellerfassung', '#inbox', async (p) => { await p.locator('.fab').tap(); await p.locator('#quick-input').waitFor(); }],

@@ -12,6 +12,7 @@
    "completed": null,
    "prevList": null,
    "order": null,
+   "subtasks": [],
    "id": "i1",
    "created": 1759300000000
   },
@@ -27,6 +28,7 @@
    "completed": null,
    "prevList": null,
    "order": null,
+   "subtasks": [],
    "id": "i2",
    "energie": "hoch",
    "created": 1759300000003
@@ -40,6 +42,7 @@
    "due": null,
    "completed": null,
    "sequential": false,
+   "color": null,
    "id": "p1",
    "created": 1759300000000
   }

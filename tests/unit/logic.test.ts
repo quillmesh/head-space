@@ -176,3 +176,63 @@ describe('Listen (Abfragen)', () => {
     expect(L.Q.projectItems(p).length).toBe(2);
   });
 });
+
+describe('Projektfarben wählen (0.12)', () => {
+  test('Palette: 20 verschiedene Farben, eindeutige Schlüssel, kein Rot', () => {
+    expect(L.PROJECT_COLORS.length).toBe(20);
+    expect(new Set(L.PROJECT_COLORS.map((c) => c.key)).size).toBe(20);
+    expect(new Set(L.PROJECT_COLORS.map((c) => c.hex)).size).toBe(20);
+    expect(L.PROJECT_COLORS.map((c) => c.hex)).not.toContain('#dc322f');
+    for (const c of L.PROJECT_COLORS) expect(c.key).toMatch(/^[a-z]+$/);
+  });
+  test('ohne gewählte Farbe bleibt die automatische Farbe wie bis 0.11', () => {
+    const a = S.createProject({ title: 'A' });
+    expect(L.projColor(a)).toBe('pc-0');
+    expect(L.colorKeyOf(a)).toBe('blau');
+  });
+  test('gewählte Farbe gilt; unbekannter Schlüssel (z. B. von neuerer Version) fällt auf automatisch zurück', () => {
+    const a = S.createProject({ title: 'A' });
+    S.patchProject(a, { color: 'marine' });
+    expect(L.projColor(a)).toBe('pcx pc-marine');
+    expect(L.colorKeyOf(a)).toBe('marine');
+    S.patchProject(a, { color: 'gibt-es-nicht' });
+    expect(L.projColor(a)).toBe('pc-0');
+  });
+  test('benutzte Farben anderer Projekte (für den Ring); gleiche Farbe mehrfach erlaubt', () => {
+    const a = S.createProject({ title: 'A' });
+    const b = S.createProject({ title: 'B' });
+    const c = S.createProject({ title: 'C' });
+    S.patchProject(b, { color: 'wein' });
+    S.patchProject(c, { color: 'wein' });
+    expect([...L.usedColorKeys(a)].sort()).toEqual(['wein']);
+    expect([...L.usedColorKeys(b)].sort()).toEqual(['blau', 'wein']);
+    S.deleteProject(c);
+    expect([...L.usedColorKeys(b)]).toEqual(['blau']);
+  });
+});
+
+describe('Abgeschlossene Projekte unter „Erledigt“ (0.12)', () => {
+  test('erledigte Aufgaben abgeschlossener oder verworfener Projekte stehen nicht einzeln in „Erledigt“', () => {
+    const p = S.createProject({ title: 'P' });
+    const q = S.createProject({ title: 'Q' });
+    const i1 = S.capture('aus P', { list: 'next', projectId: p });
+    const i2 = S.capture('aus Q', { list: 'next', projectId: q });
+    const i3 = S.capture('einzeln', { list: 'next' });
+    [i1, i2, i3].forEach((id) => S.completeItem(id));
+    expect(L.Q.done().map((i) => i.title).sort()).toEqual(['aus P', 'aus Q', 'einzeln']);
+    S.completeProject(p, false);
+    S.patchProject(q, { status: 'dropped' });
+    expect(L.Q.done().map((i) => i.title)).toEqual(['einzeln']);
+    expect(L.Q.closedProjects('done').map((x) => x.title)).toEqual(['P']);
+    expect(L.Q.closedProjects('dropped').map((x) => x.title)).toEqual(['Q']);
+    expect(L.Q.projectItems(p).map((i) => i.title)).toEqual(['aus P']);
+  });
+  test('Papierkorb zeigt Aufgaben geschlossener Projekte nicht einzeln', () => {
+    const p = S.createProject({ title: 'P' });
+    const i = S.capture('weg', { list: 'next', projectId: p });
+    S.trashItem(i);
+    expect(L.Q.trash().length).toBe(1);
+    S.completeProject(p, false);
+    expect(L.Q.trash().length).toBe(0);
+  });
+});

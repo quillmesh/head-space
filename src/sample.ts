@@ -14,16 +14,20 @@ export function seedSample() {
     S.createProject({ title: 'Spanisch lernen', outcome: 'Einfache Gespräche in den Ferien führen', status: 'someday' });
 
     S.capture('Velomechaniker anrufen und Service-Termin vereinbaren', { list: 'next', context: '@Telefon', projectId: velo, due: d(2) });
-    S.capture('Kette ölen und Bremsen prüfen', { list: 'next', context: '@Zuhause', projectId: velo, notes: 'Öl steht im Keller' });
+    const kette = S.capture('Kette ölen und Bremsen prüfen', { list: 'next', context: '@Zuhause', projectId: velo, notes: 'Öl steht im Keller' });
+    S.patchSubtask(kette, S.addSubtask(kette, 'Kette reinigen'), { done: true });
+    S.addSubtask(kette, 'Kette ölen');
+    S.addSubtask(kette, 'Bremsbeläge prüfen');
     S.capture('Offerte für Winterreifen', { list: 'waiting', waitingFor: 'Velo Kurmann', projectId: velo, tickler: d(3) });
     S.capture('Hotel in Ascona: Zimmer mit Seesicht anfragen', { list: 'next', context: '@Telefon', projectId: ferien });
     S.capture('Zugverbindung Zürich–Locarno vergleichen', { list: 'next', context: '@Computer', projectId: ferien });
     S.capture('Belege 2025 einscannen und ablegen', { list: 'next', context: '@Computer', projectId: steuer, due: d(-1) });
     S.capture('Formular Wertschriftenverzeichnis ausfüllen', { list: 'next', context: '@Computer', projectId: steuer, tickler: d(5) });
     S.capture('Farbmuster an die Wand streichen', { list: 'next', context: '@Zuhause', projectId: wohn });
-    S.capture('Abdeckband und Farbroller kaufen', { list: 'next', context: '@Unterwegs', projectId: wohn, due: d(10) });
+    S.capture('Abdeckband und Farbroller kaufen', { list: 'next', context: '@Einkaufen', projectId: wohn, due: d(10) });
     S.capture('Zahnarzt-Termin verschieben', { list: 'next', context: '@Telefon', due: today() });
     S.capture('Altglas wegbringen', { list: 'next', context: '@Unterwegs' });
+    S.capture('Reiseführer Tessin lesen', { list: 'next', context: '@Zug', projectId: ferien });
     S.capture('Antwort von Lisa zur Grillparty', { list: 'waiting', waitingFor: 'Lisa', tickler: d(-1) });
     S.capture('Kochkurs mit Anna?', { list: 'someday' });
     S.capture('WLAN-Passwort Ferienhaus', { list: 'reference', notes: 'Netz: Casa-Ticino' });

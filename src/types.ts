@@ -33,6 +33,18 @@ export interface Item {
   deleted?: boolean;
   /** Eigene Position innerhalb des Projekts (Ziehen in der Projektansicht). null = nach Frist. Ab 0.8. */
   order?: number | null;
+  /** Unteraufgaben (0.12). Werden über das Ereignis „item.sub“ einzeln geändert, damit zwei Geräte sich nicht überschreiben. */
+  subtasks?: Subtask[];
+}
+
+/** Unteraufgabe einer Aufgabe (0.12). Sichtbar nur im Dialog der Aufgabe. */
+export interface Subtask {
+  id: string;
+  title: string;
+  done: boolean;
+  /** Reihenfolge: Zeitpunkt des Anlegens */
+  order: number;
+  deleted?: boolean;
 }
 
 export type ProjectStatus = 'active' | 'someday' | 'done' | 'dropped';
@@ -51,6 +63,8 @@ export interface Project {
   deleted?: boolean;
   /** 0.8–0.9: „Nur die nächste“. Seit 0.10 ohne Wirkung; bleibt nur erhalten (Felder werden nie entfernt). */
   sequential?: boolean;
+  /** Selbst gewählte Farbe (0.12), Schlüssel aus PROJECT_COLORS in logic.ts. null = automatisch nach Erstellung. */
+  color?: string | null;
 }
 
 /**
@@ -64,7 +78,9 @@ export type EventType =
   | 'project.create'
   | 'project.patch'
   | 'context.add'
-  | 'context.remove';
+  | 'context.remove'
+  /** 0.12: eine Unteraufgabe anlegen oder ändern ({ id, sid, patch }) */
+  | 'item.sub';
 
 export interface GtdEvent {
   id: string;

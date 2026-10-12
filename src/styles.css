@@ -243,7 +243,7 @@ button.due:hover { border-color: var(--line); background: var(--surface); }
 .head-meta { margin: var(--s2) 0 0; }
 .chip.muted { background: transparent; padding-left: 0; white-space: normal; }
 
-.filters { display: flex; gap: var(--s2); overflow-x: auto; padding-bottom: var(--s2); margin-bottom: var(--s2); scrollbar-width: thin; }
+.filters { position: relative; display: flex; gap: var(--s2); overflow-x: auto; padding-bottom: var(--s2); margin-bottom: var(--s2); scrollbar-width: thin; }
 .filter {
   flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
   padding: 0.4rem 0.85rem; cursor: pointer; display: inline-flex; gap: var(--s2); align-items: baseline;

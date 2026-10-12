@@ -48,6 +48,13 @@ export const byCreated = (a: Item, b: Item) => a.created - b.created;
 /** Fällige zuerst (frühestes Datum oben), danach in Erfassungsreihenfolge */
 export const byDue = (a: Item, b: Item) => (a.due ?? '9999').localeCompare(b.due ?? '9999') || byCreated(a, b);
 export const isOpen = (i: Item) => i.list !== 'done' && i.list !== 'trash';
+/** Gehört zu einem abgeschlossenen oder verworfenen Projekt (0.12) */
+export const inClosedProject = (i: Item) => {
+  const p = i.projectId ? S.state.projects.get(i.projectId) : undefined;
+  return !!p && !p.deleted && (p.status === 'done' || p.status === 'dropped');
+};
+/** Unteraufgaben in Anzeige-Reihenfolge, ohne gelöschte */
+export const subtasksOf = (i: Item) => (i.subtasks ?? []).filter((s) => !s.deleted).sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
 
 /** Projektschritte: eigene Reihenfolge zuerst, Einträge ohne Position danach nach Frist. */
 export const byProjectOrder = (a: Item, b: Item) => {
@@ -142,8 +149,15 @@ export const Q = {
       .sort((a, b) => a.tickler!.localeCompare(b.tickler!)),
   someday: () => all().filter((i) => i.list === 'someday' && !i.tickler).sort(byCreated),
   reference: () => all().filter((i) => i.list === 'reference').sort((a, b) => a.title.localeCompare(b.title, 'de')),
-  done: () => all().filter((i) => i.list === 'done').sort((a, b) => (b.completed ?? 0) - (a.completed ?? 0)),
-  trash: () => all().filter((i) => i.list === 'trash'),
+  /** Erledigte einzelne Aufgaben. Aufgaben abgeschlossener oder verworfener Projekte stehen nur im Projekt (0.12). */
+  done: () => all().filter((i) => i.list === 'done' && !inClosedProject(i)).sort((a, b) => (b.completed ?? 0) - (a.completed ?? 0)),
+  trash: () => all().filter((i) => i.list === 'trash' && !inClosedProject(i)),
+  /** Abgeschlossene bzw. verworfene Projekte, zuletzt geschlossene zuerst (0.12) */
+  closedProjects: (status: 'done' | 'dropped') =>
+    [...S.state.projects.values()].filter((p) => !p.deleted && p.status === status)
+      .sort((a, b) => (b.completed ?? b.updated) - (a.completed ?? a.updated) || a.title.localeCompare(b.title, 'de')),
+  /** Offene Aufgaben eines Projekts (für die Rückfrage beim Abschliessen) */
+  openInProject: (pid: string) => all().filter((i) => i.projectId === pid && isOpen(i) && i.list !== 'reference'),
   projects: (status: Project['status']) =>
     [...S.state.projects.values()].filter((p) => !p.deleted && p.status === status).sort((a, b) => a.title.localeCompare(b.title, 'de')),
   /** Schritte eines Projekts: eigene Reihenfolge, sonst früheste Frist zuoberst, ohne Datum danach */
@@ -154,13 +168,61 @@ export const Q = {
 
 export const toClarify = () => [...Q.resurfaced(), ...Q.inbox()];
 
-/** Projektfarbe: nach Reihenfolge der Erstellung, 7 Farben im Kreis (Rot bleibt für Überfälliges reserviert). */
-export function projColor(pid: string | null | undefined): string {
-  if (!pid) return 'pc-none';
+/**
+ * Wählbare Projektfarben (0.12): 20 klar unterscheidbare Farben im Solarized-Stil, die 7 Solarized-Farben zuerst.
+ * Gespeichert wird der Schlüssel (Project.color), nie der Farbwert. Rot fehlt: Rot heisst „überfällig“.
+ */
+export const PROJECT_COLORS: readonly { key: string; name: string; hex: string }[] = [
+  { key: 'orange', name: 'Orange', hex: '#cb4b16' }, { key: 'gelb', name: 'Gelb', hex: '#b58900' },
+  { key: 'gruen', name: 'Grün', hex: '#859900' }, { key: 'cyan', name: 'Cyan', hex: '#2aa198' },
+  { key: 'blau', name: 'Blau', hex: '#268bd2' }, { key: 'violett', name: 'Violett', hex: '#6c71c4' },
+  { key: 'magenta', name: 'Magenta', hex: '#d33682' }, { key: 'wald', name: 'Wald', hex: '#3d7a2a' },
+  { key: 'petrol', name: 'Petrol', hex: '#1f6f78' }, { key: 'marine', name: 'Marine', hex: '#2b4f8f' },
+  { key: 'purpur', name: 'Purpur', hex: '#7b3f9e' }, { key: 'rosa', name: 'Rosa', hex: '#e47fb0' },
+  { key: 'himmel', name: 'Himmel', hex: '#6cb4ee' }, { key: 'minze', name: 'Minze', hex: '#4fb58a' },
+  { key: 'limette', name: 'Limette', hex: '#b4c43c' }, { key: 'honig', name: 'Honig', hex: '#e3a72f' },
+  { key: 'lachs', name: 'Lachs', hex: '#ec8a5a' }, { key: 'braun', name: 'Braun', hex: '#8b5a2b' },
+  { key: 'schiefer', name: 'Schiefer', hex: '#586e75' }, { key: 'wein', name: 'Wein', hex: '#9c2f5b' },
+];
+/** Automatische Farben bis 0.11 (pc-0 … pc-6) und die Palettenfarbe, der sie entsprechen */
+const AUTO_KEYS = ['blau', 'magenta', 'gruen', 'orange', 'violett', 'cyan', 'gelb'] as const;
+export const isColorKey = (k: unknown): k is string => typeof k === 'string' && PROJECT_COLORS.some((c) => c.key === k);
+
+/** Automatische Farbe: nach Reihenfolge der Erstellung, 7 Farben im Kreis (wie bis 0.11). -1 = unbekannt. */
+function autoIndex(pid: string): number {
   const ordered = [...S.state.projects.values()].sort((a, b) => a.created - b.created);
   const i = ordered.findIndex((p) => p.id === pid);
-  return i < 0 ? 'pc-none' : `pc-${i % 7}`;
+  return i < 0 ? -1 : i % 7;
 }
+
+/** CSS-Klasse der Projektfarbe: selbst gewählt (pcx pc-<Schlüssel>) oder automatisch (pc-0 … pc-6, unverändert). */
+export function projColor(pid: string | null | undefined): string {
+  if (!pid) return 'pc-none';
+  const p = S.state.projects.get(pid);
+  if (p && isColorKey(p.color)) return `pcx pc-${p.color}`;
+  const i = autoIndex(pid);
+  return i < 0 ? 'pc-none' : `pc-${i}`;
+}
+
+/** Palettenschlüssel, der für ein Projekt gerade gilt (auch bei automatischer Farbe) */
+export function colorKeyOf(pid: string): string | null {
+  const p = S.state.projects.get(pid);
+  if (p && isColorKey(p.color)) return p.color;
+  const i = autoIndex(pid);
+  return i < 0 ? null : AUTO_KEYS[i];
+}
+
+/** Farben, die andere (nicht gelöschte) Projekte schon verwenden: Ring in der Farbwahl */
+export function usedColorKeys(exceptPid: string): Set<string> {
+  const used = new Set<string>();
+  for (const p of S.state.projects.values()) {
+    if (p.deleted || p.id === exceptPid) continue;
+    const k = colorKeyOf(p.id);
+    if (k) used.add(k);
+  }
+  return used;
+}
+
 export function initials(title: string): string {
   const words = title.split(/[\s–-]+/).filter((w) => /^\p{L}/u.test(w));
   return words.slice(0, 2).map((w) => w[0].toUpperCase()).join('');

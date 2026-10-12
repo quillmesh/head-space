@@ -14,7 +14,9 @@ export const state: State = { items: new Map(), projects: new Map(), contexts: [
 export const info = { device: '', eventCount: 0, lastBackup: 0 as number, persistent: true };
 
 
-const DEFAULT_CONTEXTS = ['@Computer', '@Telefon', '@Unterwegs', '@Zuhause', '@Büro', '@Besprechung'];
+const DEFAULT_CONTEXTS = ['@Computer', '@Telefon', '@Unterwegs', '@Zuhause', '@Büro', '@Besprechung', '@Zug', '@Einkaufen'];
+/** In 0.12 neu dazugekommene Standard-Kontexte: bei bestehenden Daten einmal ergänzt (addNewDefaultContexts). */
+export const NEW_CONTEXTS_012 = ['@Zug', '@Einkaufen'];
 
 let lastTs = 0;
 let batching = false;
@@ -61,7 +63,7 @@ export function uid(): string {
 export function normalizeItem(d: Partial<Item> & { id: string }, ts: number): Item {
   return {
     title: '', notes: '', list: 'inbox', context: null, projectId: null, waitingFor: null,
-    tickler: null, due: null, completed: null, prevList: null, order: null,
+    tickler: null, due: null, completed: null, prevList: null, order: null, subtasks: [],
     ...d,
     created: d.created ?? ts,
     updated: ts,
@@ -70,7 +72,7 @@ export function normalizeItem(d: Partial<Item> & { id: string }, ts: number): It
 
 export function normalizeProject(d: Partial<Project> & { id: string }, ts: number): Project {
   return {
-    title: '', outcome: '', status: 'active', due: null, completed: null, sequential: false,
+    title: '', outcome: '', status: 'active', due: null, completed: null, sequential: false, color: null,
     ...d,
     created: d.created ?? ts,
     updated: ts,
@@ -102,7 +104,7 @@ function inDeletedProject(it: Item, st: State): boolean {
   return !it.deleted && !!it.projectId && !!st.projects.get(it.projectId)?.deleted;
 }
 function deleteWithProject(it: Item) {
-  Object.assign(it, { deleted: true, title: '', notes: '' });
+  Object.assign(it, { deleted: true, title: '', notes: '', subtasks: [] });
 }
 
 function applyUnsafe(e: GtdEvent, st: State) {
@@ -135,6 +137,19 @@ function applyUnsafe(e: GtdEvent, st: State) {
         // Projekt gelöscht: auch Schritte, die das löschende Gerät noch nicht kannte
         if (d.patch?.deleted) for (const it of st.items.values()) if (inDeletedProject(it, st) && it.projectId === p.id) deleteWithProject(it);
       }
+      break;
+    }
+    case 'item.sub': {
+      // Unteraufgabe anlegen oder ändern (0.12). Jede Unteraufgabe für sich, damit gleichzeitige Änderungen
+      // auf zwei Geräten an verschiedenen Unteraufgaben beide erhalten bleiben. Nie das Array im Ereignis verändern.
+      const it = st.items.get(d.id);
+      if (!it || it.deleted || typeof d.sid !== 'string') break;
+      const patch = d.patch && typeof d.patch === 'object' ? d.patch : {};
+      const subs = Array.isArray(it.subtasks) ? it.subtasks : [];
+      const old = subs.find((x) => x.id === d.sid);
+      const next = { id: d.sid, title: '', done: false, order: e.ts, ...old, ...patch };
+      it.subtasks = old ? subs.map((x) => (x.id === d.sid ? next : x)) : [...subs, next];
+      it.updated = e.ts;
       break;
     }
     case 'context.add':
@@ -236,7 +251,7 @@ export function trashItem(id: string) {
 
 export function emptyTrash() {
   batch(() => {
-    for (const it of state.items.values()) if (it.list === 'trash' && !it.deleted) patchItem(it.id, { deleted: true, title: '', notes: '' });
+    for (const it of state.items.values()) if (it.list === 'trash' && !it.deleted) patchItem(it.id, { deleted: true, title: '', notes: '', subtasks: [] });
   });
 }
 
@@ -267,7 +282,7 @@ export function deleteProject(pid: string) {
   if (!state.projects.has(pid)) return;
   batch(() => {
     for (const it of state.items.values()) {
-      if (it.projectId === pid && !it.deleted) patchItem(it.id, { deleted: true, title: '', notes: '' });
+      if (it.projectId === pid && !it.deleted) patchItem(it.id, { deleted: true, title: '', notes: '', subtasks: [] });
     }
     patchProject(pid, { deleted: true, title: '', outcome: '' });
   });
@@ -282,6 +297,79 @@ export function resetProjectOrder(pid: string) {
 export function addProjectStep(pid: string, title: string, extra: Partial<Item> = {}): string {
   const order = orderForNew(projectSteps(pid), extra.due ?? null);
   return capture(title, { list: 'next', projectId: pid, ...extra, ...(order !== null ? { order } : {}) });
+}
+
+// ---------- Unteraufgaben (0.12) ----------
+
+/** Neue Unteraufgabe; gibt ihre ID zurück */
+export function addSubtask(itemId: string, title: string): string {
+  const sid = uid();
+  if (state.items.has(itemId)) emit('item.sub', { id: itemId, sid, patch: { title: title.trim(), done: false } });
+  return sid;
+}
+/** Unteraufgabe ändern (Titel, abgehakt, gelöscht) */
+export function patchSubtask(itemId: string, sid: string, patch: { title?: string; done?: boolean; deleted?: boolean }) {
+  if (!state.items.has(itemId)) return;
+  emit('item.sub', { id: itemId, sid, patch });
+}
+
+// ---------- Projekte abschliessen und wieder öffnen (0.12) ----------
+
+/**
+ * Projekt abschliessen. withOpen: offene Aufgaben mit erledigen (Rückfrage in der Oberfläche).
+ * Gibt zurück, was zum Rückgängigmachen nötig ist.
+ */
+export function completeProject(pid: string, withOpen: boolean): { prev: Pick<Project, 'status' | 'completed'>; completed: string[] } | null {
+  const p = state.projects.get(pid);
+  if (!p) return null;
+  const prev = { status: p.status, completed: p.completed };
+  const completed: string[] = [];
+  batch(() => {
+    if (withOpen) {
+      for (const it of Q.openInProject(pid)) { completeItem(it.id); completed.push(it.id); }
+    }
+    patchProject(pid, { status: 'done', completed: Date.now() });
+  });
+  return { prev, completed };
+}
+
+/** Rückgängig zu completeProject */
+export function undoCompleteProject(pid: string, u: { prev: Pick<Project, 'status' | 'completed'>; completed: string[] }) {
+  batch(() => {
+    u.completed.forEach((id) => restoreItem(id));
+    patchProject(pid, u.prev);
+  });
+}
+
+/**
+ * Erledigte Aufgabe eines abgeschlossenen/verworfenen Projekts zurückholen.
+ * 'project': ganzes Projekt wieder aktiv, Aufgabe offen. 'item': nur die Aufgabe, sie wird vom Projekt gelöst.
+ */
+export function reopenFromClosedProject(itemId: string, mode: 'project' | 'item') {
+  const it = state.items.get(itemId);
+  if (!it) return;
+  const pid = it.projectId;
+  batch(() => {
+    restoreItem(itemId);
+    if (mode === 'project' && pid) patchProject(pid, { status: 'active', completed: null });
+    if (mode === 'item') patchItem(itemId, { projectId: null, order: null });
+  });
+}
+
+/**
+ * Neue Standard-Kontexte von 0.12 (Zug, Einkaufen) bei bestehenden Daten einmal ergänzen.
+ * Nur wenn der Kontext noch nie angelegt wurde: Wer ihn später löscht, bekommt ihn nicht zurück.
+ * Läuft getrennt von init(), damit das Lesen alter Daten selbst nichts verändert.
+ */
+export async function addNewDefaultContexts(): Promise<string[]> {
+  if (await db.getMeta('contexts012')) return [];
+  const evs = await db.allEvents();
+  const ever = new Set(evs.filter((e) => e.type === 'context.add' && e.data && typeof e.data.name === 'string').map((e) => e.data.name as string));
+  const added = NEW_CONTEXTS_012.filter((c) => !ever.has(c) && !state.contexts.includes(c));
+  if (added.length) batch(() => added.forEach((c) => emit('context.add', { name: c })));
+  await whenSaved();
+  await db.setMeta('contexts012', true);
+  return added;
 }
 
 export function patchProject(id: string, patch: Partial<Project>) {

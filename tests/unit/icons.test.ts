@@ -12,12 +12,19 @@ describe('Kontextname', () => {
 });
 
 describe('Symbole', () => {
-  test('alle sechs Standard-Kontexte haben ein Symbol', () => {
-    for (const c of ['@Computer', '@Telefon', '@Unterwegs', '@Zuhause', '@Büro', '@Besprechung']) {
+  test('alle acht Standard-Kontexte haben ein Symbol', () => {
+    for (const c of ['@Computer', '@Telefon', '@Unterwegs', '@Zuhause', '@Büro', '@Besprechung', '@Zug', '@Einkaufen']) {
       expect(ctxIconKey(c)).not.toBeNull();
       expect(ctxIcon(c)).toContain('<svg');
     }
-    expect(Object.keys(ICON_PATHS).length).toBe(6);
+    expect(Object.keys(ICON_PATHS).length).toBe(8);
+  });
+  test('0.12: Zug hat das frühere Zugsymbol, Unterwegs ein eigenes (Männchen), Einkaufen den Wagen', () => {
+    expect(ICON_PATHS.zug).toContain('rect x="6" y="3"');
+    expect(ICON_PATHS.unterwegs).not.toBe(ICON_PATHS.zug);
+    expect(ICON_PATHS.unterwegs).toContain('<circle');
+    expect(new Set(Object.values(ICON_PATHS)).size).toBe(8);
+    expect(ctxIcon('@Einkaufen')).toContain('ico-einkaufen');
   });
   test('Gross-/Kleinschreibung und @ spielen keine Rolle', () => {
     expect(ctxIconKey('@telefon')).toBe(ctxIconKey('@Telefon'));

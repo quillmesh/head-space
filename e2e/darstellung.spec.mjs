@@ -17,9 +17,17 @@ test.describe('Handy', () => {
     await expect(zahn.locator('.ctx-badge svg.ico-telefon')).toHaveCount(1);
     await expect(zahn.locator('.ctx-badge')).toHaveAttribute('title', 'Telefon');
     await expect(karte(page, 'Altglas').locator('svg.ico-unterwegs')).toHaveCount(1);
+    // 0.12: Zug hat das Zugsymbol, Unterwegs das Männchen, Einkaufen den Einkaufswagen
+    await expect(karte(page, 'Reiseführer').locator('svg.ico-zug')).toHaveCount(1);
+    await expect(karte(page, 'Abdeckband').locator('svg.ico-einkaufen')).toHaveCount(1);
+    expect(await karte(page, 'Altglas').locator('svg.ico-unterwegs').innerHTML(), 'Unterwegs nicht mehr der Zug')
+      .not.toBe(await karte(page, 'Reiseführer').locator('svg.ico-zug').innerHTML());
     const b = await zahn.locator('.ctx-badge svg').boundingBox();
     expect(b.width).toBeGreaterThanOrEqual(21); expect(b.width).toBeLessThanOrEqual(24);
     await expect(page.locator('.filter[data-ctx="@Computer"] svg.ico-computer')).toHaveCount(1);
+    // 0.12: viele Kontext-Filter scrollen in ihrer Leiste; die Seite selbst wird nicht breiter (Screenreader-Namen blieben früher draussen)
+    expect(await page.evaluate(() => document.querySelector('.filters').scrollWidth > document.querySelector('.filters').clientWidth), 'Leiste läuft über').toBe(true);
+    expect(await keinQuerScrollen(page), 'kein Querscrollen der Seite').toBe(true);
 
     const h = page.locator('h2.section', { has: page.locator('.ico-computer') });
     await expect(h).toHaveText(/^\s*computer\s*$/i);
@@ -120,6 +128,8 @@ test.describe('Computer', () => {
     await gehe(page, 'test/#settings');
     await expect(page.locator('.ctx-list')).not.toContainText('@');
     await expect(page.locator('.ctx-list svg.ico-besprechung')).toHaveCount(1);
+    await expect(page.locator('.ctx-list svg.ico-zug'), 'neuer Standard-Kontext Zug').toHaveCount(1);
+    await expect(page.locator('.ctx-list svg.ico-einkaufen'), 'neuer Standard-Kontext Einkaufen').toHaveCount(1);
     await page.fill('#ctx-input', 'Garten'); await page.keyboard.press('Enter');
     await expect(page.locator('.ctx-list svg.ico-tag')).toHaveCount(1);
     await expect(page.locator('.ctx-list')).toContainText('Garten');

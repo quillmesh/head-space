@@ -45,6 +45,8 @@ Zu Beginn einer neuen Unterhaltung auch `docs/UEBERGABE.md` lesen (Stand, offene
 ## Ablauf
 1. Ändern **auf Branch `test`**, dann `tests/run.sh` (Typen + Unit + End-to-End; alle müssen bestehen).
 2. Version in `package.json` erhöhen (Patch für Korrekturen, Minor für Funktionen).
+   Dazu in `RELEASE-NOTES.md` einen Abschnitt `## <Version>` mit den Änderungen in Worten des Nutzers (Pflicht, Unit-Test prüft es).
+   Die App zeigt ihn nach dem Update einmal als „Was ist neu“.
 3. Commit und `git push origin test` → GitHub testet und veröffentlicht nur die **Test-App**.
 4. Nutzer prüft in der Test-App. **Erst wenn er „freigeben“ schreibt:** `test` in `main` übernehmen
    (`git checkout main && git merge --ff-only test && git push origin main`) → Live-App zeigt „Neue Version verfügbar“.
