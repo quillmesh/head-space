@@ -95,6 +95,30 @@ try {
     await go('projects'); const row = page.locator('#main li.row', { has: page.locator('.row-title', { hasText: 'Velo verkaufen' }) });
     await swipe(row); await row.locator('.swipe-del').click();
   });
+  // ab 0.12: Projektfarbe, Unteraufgaben (Ereignis item.sub), Projekt abschliessen und Aufgabe zurückholen
+  await step('Projektfarbe wählen (ab 0.12)', async () => {
+    await go('projects'); await page.locator('#main .row-title', { hasText: 'Velo verkaufen' }).click();
+    await page.click('[data-action=pick-color]'); await page.click('#modal .swatch[data-key=wein]');
+    await page.waitForSelector('#main .view-head.pc-wein');
+  });
+  await step('Unteraufgaben: anlegen, abhaken, umbenennen (ab 0.12)', async () => {
+    await go('next'); await page.locator('#main .row-title', { hasText: 'Inserat schreiben' }).click(); await page.waitForSelector('#e-title');
+    await page.click('[data-action=sub-start]'); await page.keyboard.type('Vertrag suchen');
+    await page.click('[data-action=sub-add]'); await page.keyboard.type('Brief schreiben');
+    await page.click('form[data-form=edit] button[type=submit]');
+    await page.locator('#main .row-title', { hasText: 'Inserat schreiben' }).click(); await page.waitForSelector('.sub-check');
+    await page.locator('.sub-check').first().click();
+    await page.locator('.sub-input').last().fill('Brief eingeschrieben schicken');
+    await page.click('form[data-form=edit] button[type=submit]');
+  });
+  await step('Projekt abschliessen mit offenen Aufgaben (ab 0.12)', async () => {
+    await go('projects'); await page.locator('#main .row-title', { hasText: 'Velo verkaufen' }).click();
+    await page.click('[data-action=close-project]'); await page.click('#modal [data-action=close-project-go][data-with="1"]');
+  });
+  await step('Aufgabe aus abgeschlossenem Projekt zurückholen: nur die Aufgabe (ab 0.12)', async () => {
+    await go('done'); await page.locator('#main .row-title', { hasText: 'Velo verkaufen' }).click();
+    await page.locator('#main [data-action=restore]').first().click(); await page.click('#modal [data-mode=item]');
+  });
   await page.evaluate(() => window.kopfFrei?.whenSaved?.());
   console.log(`${version}: ${aktionen.join(' · ')}`);
 

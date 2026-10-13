@@ -1,17 +1,17 @@
-# Übergabe für eine neue Unterhaltung (Stand 12.10.2026, abends)
+# Übergabe für eine neue Unterhaltung (Stand 13.10.2026)
 
 Zuerst `CLAUDE.md` lesen: Regeln, Ablauf, **erst fragen, dann umsetzen**.
 
 ## Stand
-- **Live** (`main`): Version **0.11.0** (freigegeben 11.10.2026, Daten eingefroren in `tests/unit/alte-daten/v0.11.0.json`)
-- **Test** (`test`): Version **0.12.0**, wartet auf „freigeben“. Enthält die Änderungswünsche 1–6 (Liste im Claude-Projekt
-  „Kopf frei – Änderungswünsche“): Projektfarbe zeigen und wählen, abgeschlossene Projekte unter „Erledigt“, Kontexte
-  Zug/Unterwegs/Einkaufen, Unteraufgaben, Release Notes mit „Was ist neu“.
+- **Live** (`main`) und **Test** (`test`): Version **0.12.0**, freigegeben am 13.10.2026 (Commit `55e165d`).
+  Enthält die Änderungswünsche 1–6 (Liste im Claude-Projekt „Kopf frei – Änderungswünsche“).
+- Echte Daten von 0.11.0 und 0.12.0 eingefroren; das Einfrier-Skript erzeugt ab 0.12 auch Projektfarbe,
+  Unteraufgaben, Abschliessen mit offenen Aufgaben und Zurückholen „nur die Aufgabe“.
 
 ## Offene Punkte (vom Nutzer noch nicht freigegeben, nicht ohne OK umsetzen)
 1. **Falscher Update-Hinweis in der Live-App.** `build.mjs` setzt die Bau-Nummer (`__APP_BUILD__`, `VERSION` in `sw.js`) aus der Uhrzeit. Jeder Push auf `test` baut die ganze Website neu, also auch Live, und die Live-App meldet dann ein Update ohne Änderung. Vorschlag: Bau-Nummer aus dem Inhalt berechnen (Hash).
 2. **Fahne auf dem iPad.** In 0.9 korrigiert, weil das unsichtbare Datumsfeld hinter der Fahne `appearance: none` hatte. Der Nutzer hat noch nicht bestätigt, dass es auf dem echten iPad geht.
-3. **Nach der Freigabe von 0.12.0:** echte Daten einfrieren (`node scripts/alte-daten-einfrieren.mjs <commit> 0.12.0`).
+3. **Nach jeder Freigabe:** echte Daten einfrieren (`node scripts/alte-daten-einfrieren.mjs <commit> <version>`).
 
 ## Entscheidungen des Nutzers (gelten)
 - **Kontexte:** Strichsymbole (Stil A, 22 px), Anzeige ohne „@“. Gespeichert bleibt „@Computer“.

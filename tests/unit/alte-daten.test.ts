@@ -28,8 +28,8 @@ const snapshot = () => JSON.parse(JSON.stringify({
 beforeEach(() => { db.resetMemoryForTests(); S.resetForTests(); });
 
 describe('Alte Daten (Golden Files)', () => {
-  test('mindestens die Versionen 0.1, 0.5, 0.8, 0.9, 0.10 und 0.11 sind eingefroren', () => {
-    expect(files).toEqual(expect.arrayContaining(['v0.1.0.json', 'v0.5.0.json', 'v0.8.0.json', 'v0.9.0.json', 'v0.10.0.json', 'v0.11.0.json']));
+  test('mindestens die Versionen 0.1, 0.5, 0.8, 0.9, 0.10, 0.11 und 0.12 sind eingefroren', () => {
+    expect(files).toEqual(expect.arrayContaining(['v0.1.0.json', 'v0.5.0.json', 'v0.8.0.json', 'v0.9.0.json', 'v0.10.0.json', 'v0.11.0.json', 'v0.12.0.json']));
   });
 
   for (const f of files) {

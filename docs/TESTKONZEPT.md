@@ -11,7 +11,7 @@ Oberste Priorität bleibt die **Datenkonsistenz zwischen Geräten**.
 | Typen | `src/` | TypeScript | ~5 s | Schreibfehler, falsche Felder |
 | Unit | `tests/unit/*.test.ts` | `bun test` | < 1 s | Logik, Speicher, Sync, Verschlüsselung, Zurücksetzen |
 | Darstellung | `tests/unit/karten.test.ts` | `bun test` | ms | welches Symbol / welche Farbstufe in einer Karte |
-| Alte Daten | `tests/unit/alte-daten.test.ts` + `alte-daten/` | `bun test` | ms | echte Daten von 0.1, 0.5, 0.8, 0.9, 0.10, 0.11 werden genau so gelesen |
+| Alte Daten | `tests/unit/alte-daten.test.ts` + `alte-daten/` | `bun test` | ms | echte Daten von 0.1, 0.5, 0.8, 0.9, 0.10, 0.11, 0.12 werden genau so gelesen |
 | Sync-Zufall | `tests/unit/sync-zufall.test.ts` | `bun test` | ~0,2 s | 150 zufällige Abläufe auf zwei Geräten mit verstellten Uhren |
 | Neuerungen | `tests/unit/notes.test.ts` | `bun test` | ms | RELEASE-NOTES.md hat einen Eintrag für die Version in package.json; was nach einem Update gezeigt wird |
 | End-to-End | `e2e/<funktion>.spec.mjs` | Playwright Test | ~1½ min | Bedienung, Touch, CSS, Service Worker, Sync im Browser |
