@@ -147,10 +147,11 @@ function dueSlot(kind: 'item' | 'project', id: string, due: string | null | unde
   const text = !due ? '' : st === 'today' ? 'Heute' : fmtDate(due);
   if (!editable) return `<span class="slot slot-due">${due ? `<span class="due due-${st}">${FLAG_SVG}<span>${text}</span></span>` : ''}</span>`;
   const label = !due ? 'Frist setzen' : `${st === 'overdue' ? 'Überfällig seit' : 'Fällig am'} ${fmtDate(due)}, ändern`;
-  return `<span class="slot slot-due">
+  // .due-hit: Fahne und Datumsfeld gleich gross übereinander (auf iPad/iPhone trifft der Finger das Feld)
+  return `<span class="slot slot-due"><span class="due-hit">
     <button type="button" class="due due-${st}" data-action="due-pick" data-kind="${kind}" data-id="${id}" title="${label}" aria-label="${label}">${FLAG_SVG}${text ? `<span>${text}</span>` : ''}</button>
     <input type="date" class="due-input" tabindex="-1" aria-hidden="true" data-kind="${kind}" data-id="${id}" value="${due ?? ''}">
-  </span>`;
+  </span></span>`;
 }
 
 /**
@@ -1495,6 +1496,8 @@ function onClick(e: MouseEvent) {
     closeSwipe();
     if (insideOpen) { e.preventDefault(); return; }
   }
+  // iPad/iPhone: Tippen aufs Datumsfeld über der Fahne öffnet nur die Datumsauswahl, nicht den Dialog der Karte
+  if ((e.target as HTMLElement).matches?.('.due-input, .step-due-input')) return;
   const el = (e.target as HTMLElement).closest<HTMLElement>('[data-action]');
   if (!el) return;
   const a = el.dataset.action!;

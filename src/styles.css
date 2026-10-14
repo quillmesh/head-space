@@ -200,6 +200,14 @@ button.due:hover { border-color: var(--line); background: var(--surface); }
 .due-soon { background: var(--soon-soft); color: var(--soon); font-weight: 600; }
 .due-week, .due-later { border-color: var(--line); color: var(--ink); }
 .due-input { position: absolute; left: 0; bottom: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; border: 0; padding: 0; min-height: 0 !important; }
+.due-hit { position: relative; display: inline-flex; min-width: 0; max-width: 100%; }
+/* iPad/iPhone: showPicker() wirkt nicht. Das durchsichtige Datumsfeld liegt über der Fahne, der Finger trifft es
+   direkt und iPadOS öffnet seine Datumsauswahl. 16 px Schrift, sonst zoomt iOS beim Antippen. */
+/* Das Datumsfeld kann breiter sein als die Fahne: abschneiden, damit nur die Fahne selbst reagiert */
+.ios-datum .due-hit, .ios-datum .step-due { overflow: hidden; border-radius: 6px; }
+.ios-datum .due-input, .ios-datum .step-due-input:not(.is-open) {
+  pointer-events: auto; z-index: 2; inset: 0; width: 100%; height: 100%; font-size: 16px; cursor: pointer;
+}
 .quick-dates { display: flex; flex-wrap: wrap; gap: var(--s2); }
 
 @media (max-width: 560px) {

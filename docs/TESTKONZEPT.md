@@ -39,13 +39,16 @@ absichtlich, `ALTE_DATEN_EINFRIEREN=1 bun test tests/unit/alte-daten.test.ts` un
 - Bei Fehlern: Trace mit DOM, Netzwerk und Bildern je Schritt. Lokal unter `test-results/`, auf GitHub als
   Artifact „playwright-bericht“. Ansehen: https://trace.playwright.dev (Datei hineinziehen).
 - WebKit (Safari-Kern) läuft auf GitHub für Tests mit `@webkit` im Namen (zurzeit der Knopf-Test auf dem iPad).
+- Browser-Funktionen nie nur als Attrappe prüfen, die „wurde aufgerufen“ meldet: Bis 0.12.0 ersetzten alle Tests
+  `showPicker()` und prüften nur den Aufruf. Auf iPad/iPhone ruft die App die Funktion zwar auf, sie öffnet dort
+  aber nichts (WebKit-Fehler 268114). Seit 0.12.1 bildet ein Test das echte iPad-Verhalten nach.
 - Ein Test ist nur etwas wert, wenn er ohne die Funktion rot wird. Bei neuen Regeln einmal absichtlich ausschalten und prüfen.
 
 | Datei | Inhalt |
 |---|---|
 | `erfassen-klaeren` | Inbox, alle Klär-Wege, einzeln klären, Fristen beim Klären, Fristen-Ansicht |
 | `erledigen-rueckgaengig` | Erledigen, Rückgängig-Leiste, „Nächster Schritt“, Projekteintrag übernehmen |
-| `fristen-kalender` | Fahne in der Karte, Ersatzdialog, nur „input“ (iPad), Rad-Auswahl |
+| `fristen-kalender` | Fahne in der Karte, Ersatzdialog, nur „input“ (iPad), Rad-Auswahl, iPad/iPhone mit wirkungslosem `showPicker()` (WebKit-Fehler): Finger trifft das Datumsfeld, kein Dialog dazu |
 | `projekte` | Schritt mit Frist, Ziehen mit dem Finger, Warndreieck, Pfeiltasten, Wischen vs. Griff, Projektfarbe zeigen und wählen, Abschliessen mit Rückfrage, „Erledigt“ mit Projekt-Karte, Zurückholen |
 | `unteraufgaben` | Unteraufgaben einschalten, „+“, sofort abhaken (bleibt sichtbar), entfernen, umbenennen |
 | `neuerungen` | „Was ist neu“: neues Gerät ohne Fenster, nach Update einmal |

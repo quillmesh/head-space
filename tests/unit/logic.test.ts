@@ -236,3 +236,16 @@ describe('Abgeschlossene Projekte unter „Erledigt“ (0.12)', () => {
     expect(L.Q.trash().length).toBe(0);
   });
 });
+
+describe('Datumsfeld direkt antippen (iPad/iPhone)', () => {
+  test('iPhone, iPod, iPad (alte Kennung) und iPad als „Mac mit Touch“', () => {
+    for (const p of ['iPhone', 'iPod touch', 'iPad']) expect(L.needsDirectDateTap(p, 5)).toBe(true);
+    expect(L.needsDirectDateTap('MacIntel', 5)).toBe(true);
+  });
+  test('Mac ohne Touch, Windows, Android, Linux: nein (dort wirkt showPicker)', () => {
+    expect(L.needsDirectDateTap('MacIntel', 0)).toBe(false);
+    expect(L.needsDirectDateTap('Win32', 10)).toBe(false);
+    expect(L.needsDirectDateTap('Linux armv8l', 5)).toBe(false);
+    expect(L.needsDirectDateTap(undefined, undefined)).toBe(false);
+  });
+});

@@ -10,7 +10,10 @@ Zuerst `CLAUDE.md` lesen: Regeln, Ablauf, **erst fragen, dann umsetzen**.
 
 ## Offene Punkte (vom Nutzer noch nicht freigegeben, nicht ohne OK umsetzen)
 1. **Falscher Update-Hinweis in der Live-App.** `build.mjs` setzt die Bau-Nummer (`__APP_BUILD__`, `VERSION` in `sw.js`) aus der Uhrzeit. Jeder Push auf `test` baut die ganze Website neu, also auch Live, und die Live-App meldet dann ein Update ohne Änderung. Vorschlag: Bau-Nummer aus dem Inhalt berechnen (Hash).
-2. **Fahne auf dem iPad.** In 0.9 korrigiert, weil das unsichtbare Datumsfeld hinter der Fahne `appearance: none` hatte. Der Nutzer hat noch nicht bestätigt, dass es auf dem echten iPad geht.
+2. **Fahne auf dem iPad (0.12.1):** Ursache gefunden: `showPicker()` öffnet auf iOS/iPadOS nichts und meldet keinen Fehler
+   (WebKit-Fehler 268114/261703). Lösung (vom Nutzer gewählt): auf iPad/iPhone (`needsDirectDateTap`, Klasse `ios-datum`)
+   liegt das durchsichtige Datumsfeld über der Fahne. Noch zu bestätigen auf dem echten iPad. Echte iPad-Simulator-Tests
+   auf GitHub wurden angeboten, der Nutzer wollte vorerst nur den schnellen Test.
 3. **Nach jeder Freigabe:** echte Daten einfrieren (`node scripts/alte-daten-einfrieren.mjs <commit> <version>`).
 
 ## Entscheidungen des Nutzers (gelten)

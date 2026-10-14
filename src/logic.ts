@@ -40,6 +40,16 @@ export function daysSince(ts: number): number {
   return Math.floor((Date.now() - ts) / 86_400_000);
 }
 
+/**
+ * iPad und iPhone (WebKit auf iOS): showPicker() ist vorhanden, öffnet aber nichts und meldet keinen Fehler
+ * (WebKit-Fehler 268114, 261703). Dort muss der Finger das Datumsfeld direkt treffen. Safari auf dem iPad
+ * meldet sich als Mac („MacIntel“), aber mit Touch. Alle Browser auf iOS nutzen WebKit.
+ */
+export function needsDirectDateTap(platform: string | undefined, maxTouchPoints: number | undefined): boolean {
+  const p = platform ?? '';
+  return /^(iPhone|iPad|iPod)/.test(p) || (p === 'MacIntel' && (maxTouchPoints ?? 0) > 1);
+}
+
 // ---------- Abfragen ----------
 
 export const all = () => [...S.state.items.values()].filter((i) => !i.deleted);

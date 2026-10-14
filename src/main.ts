@@ -3,6 +3,7 @@ import { APP_VERSION, applyTheme, mount, offerUpdate, setAppActions, showNewsIfU
 import { requestPersistence, setOnBlocked } from './db';
 import { initSync, syncNow } from './sync';
 import { IS_TEST } from './env';
+import { needsDirectDateTap } from './logic';
 import { seedSample } from './sample';
 import { getMeta, setMeta } from './db';
 import { state } from './store';
@@ -24,6 +25,8 @@ setAppActions({ checkForUpdate: () => checkForUpdate(), repairApp: () => repairA
 
 async function start() {
   applyTheme();
+  // iPad/iPhone: Datumsfeld liegt durchsichtig über der Fahne (showPicker wirkt dort nicht)
+  if (needsDirectDateTap(navigator.platform, navigator.maxTouchPoints)) document.documentElement.classList.add('ios-datum');
   setOnBlocked(() => {
     document.getElementById('main')!.innerHTML =
       '<div class="empty"><p class="empty-title">Update wartet</p><p>Die App ist noch in einem anderen Fenster oder Tab offen. Schliess die anderen Fenster, dann geht es hier automatisch weiter.</p></div>';
