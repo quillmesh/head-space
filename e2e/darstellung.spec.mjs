@@ -153,3 +153,15 @@ test.describe('Computer', () => {
     await expect(page.locator('html')).not.toHaveAttribute('data-theme', /.+/);
   });
 });
+
+test.describe('Projektliste (0.13)', () => {
+  test.use(HANDY);
+  test('Ergebnis vollständig lesbar, ohne Box', async ({ page }) => {
+    await gehe(page, 'test/#projects');
+    const e = page.locator('#main .row', { hasText: 'Velo winterfit' }).locator('.proj-outcome');
+    await expect(e).toHaveText('Service gemacht, Licht und Winterreifen montiert');
+    expect(await e.evaluate((el) => el.scrollWidth <= el.clientWidth + 1 && getComputedStyle(el).whiteSpace !== 'nowrap'), 'nicht abgeschnitten').toBe(true);
+    await expect(e).toHaveCSS('border-top-width', '0px');
+    await expect(e).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  });
+});

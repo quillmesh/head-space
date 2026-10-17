@@ -4,6 +4,13 @@ Für jede Version die Änderungen, neueste zuoberst. Die App zeigt nach einem Up
 der neuen Versionen einmal als Fenster „Was ist neu“. Format: `## <Version>`, darunter Punkte mit `- `.
 **Fett** ist erlaubt. Alles andere wird nicht angezeigt.
 
+## 0.13.0
+- **Klären geht schneller:** Nach „Ist das umsetzbar?“ wählst du auf einem Blatt das Ziel: Erledigt, Nächster Schritt, Delegieren oder Projekt. Es erscheinen nur die Felder, die dazu gehören, den Kontext tippst du als Symbol an.
+- **„Geklärt“ in der Inbox:** für Kurzes, das sich schon erledigt hat oder weg kann: „Schon erledigt“ oder „Löschen“, mit Rückgängig.
+- **Inbox ohne Datum:** In der Inbox gibt es nur noch „Geklärt“ und „Klären“, keine Fahne mehr.
+- **Projektliste:** Das gewünschte Ergebnis steht vollständig und gut lesbar unter dem Projekt.
+- **Fahne auf dem iPad:** Die Datumsauswahl bleibt offen, bis du ein Datum gewählt hast, statt sich sofort mit heute zu schliessen.
+
 ## 0.12.1
 - **Frist auf dem iPad und iPhone:** Antippen der Fahne öffnet jetzt die Datumsauswahl von iPadOS (in der Karte und beim neuen Projektschritt).
 

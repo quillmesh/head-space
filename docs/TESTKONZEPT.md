@@ -46,14 +46,14 @@ absichtlich, `ALTE_DATEN_EINFRIEREN=1 bun test tests/unit/alte-daten.test.ts` un
 
 | Datei | Inhalt |
 |---|---|
-| `erfassen-klaeren` | Inbox, alle Klär-Wege, einzeln klären, Fristen beim Klären, Fristen-Ansicht |
+| `erfassen-klaeren` | Inbox, alle Klär-Wege (ab 0.13: Ziel-Kacheln), einzeln klären, Fristen beim Klären, Fristen-Ansicht, „Geklärt“, Inbox ohne Datum |
 | `erledigen-rueckgaengig` | Erledigen, Rückgängig-Leiste, „Nächster Schritt“, Projekteintrag übernehmen |
-| `fristen-kalender` | Fahne in der Karte, Ersatzdialog, nur „input“ (iPad), Rad-Auswahl, iPad/iPhone mit wirkungslosem `showPicker()` (WebKit-Fehler): Finger trifft das Datumsfeld, kein Dialog dazu |
+| `fristen-kalender` | Fahne in der Karte, Ersatzdialog, nur „input“ (iPad), Rad-Auswahl, iPad/iPhone mit wirkungslosem `showPicker()` (WebKit-Fehler): Finger trifft das Datumsfeld, kein Dialog dazu, Auswahl bleibt offen bis zum Schliessen (0.13) |
 | `projekte` | Schritt mit Frist, Ziehen mit dem Finger, Warndreieck, Pfeiltasten, Wischen vs. Griff, Projektfarbe zeigen und wählen, Abschliessen mit Rückfrage, „Erledigt“ mit Projekt-Karte, Zurückholen |
 | `unteraufgaben` | Unteraufgaben einschalten, „+“, sofort abhaken (bleibt sichtbar), entfernen, umbenennen |
 | `neuerungen` | „Was ist neu“: neues Gerät ohne Fenster, nach Update einmal |
 | `loeschen-papierkorb` | Wischen, Rückgängig, Papierkorb leeren, Projekt löschen |
-| `darstellung` | Farben, Grössen, „auf einer Linie“, kompakte Handy-Karten, Dialog-Felder, Hell/Dunkel, Kontext-Symbole (Zug, Unterwegs, Einkaufen), Filterleiste ohne Querscrollen |
+| `darstellung` | Farben, Grössen, „auf einer Linie“, kompakte Handy-Karten, Dialog-Felder, Hell/Dunkel, Kontext-Symbole (Zug, Unterwegs, Einkaufen), Filterleiste ohne Querscrollen, Projektergebnis vollständig ohne Box |
 | `sync` | alte Datenbank v1, Einrichten, zwei Geräte, verschlüsselt, Löschen über zwei Geräte, verwaister Schritt |
 | `update-offline` | Service Worker, Update-Hinweis, veralteter Zwischenspeicher, App reparieren (eigener Server) |
 | `umgebungen` | Live und Test getrennt (Daten, Einstellungen, Service Worker, Caches, Backup) |

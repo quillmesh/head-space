@@ -114,8 +114,24 @@ for (const [name, geraet, platform] of [['iPad', IPAD, 'MacIntel'], ['iPhone', H
       expect(await page.evaluate(() => window.__showPicker), 'kein Verlass auf showPicker').toBe(0);
       await expect(page.locator('#modal'), 'öffnet nicht zusätzlich den Bearbeiten-Dialog').toBeHidden();
       await feld.evaluate((el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); }, iso(2));
+      // Auswahl schliessen wie auf dem iPad: daneben tippen
+      const h = await page.locator('#main h1').boundingBox();
+      await page.touchscreen.tap(h.x + 5, h.y + 5);
       await expect(z.locator('button.due')).toContainText('.');
       await expect(page.locator('#undo')).toContainText('Fällig am');
+
+      // Wunsch 7 (0.13): iPadOS wählt beim Öffnen heute vor und meldet sofort „change“. Solange das Feld den
+      // Fokus hat, ist die Auswahl offen: nichts speichern und nicht neu zeichnen (das schloss sie), erst beim Verlassen.
+      const k = karte(page, 'Kette ölen');
+      const f2 = k.locator('.due-input');
+      const vorher = await page.evaluate(() => window.kopfFrei.eventCount());
+      await f2.evaluate((el, v) => { el.focus(); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); }, iso(0));
+      await f2.evaluate((el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); }, iso(5));
+      expect(await f2.evaluate((el) => document.activeElement === el && document.contains(el)), 'Auswahl bleibt offen (Feld nicht ersetzt)').toBe(true);
+      expect(await page.evaluate(() => window.kopfFrei.eventCount()), 'noch nichts gespeichert').toBe(vorher);
+      await f2.evaluate((el) => el.blur());
+      await expect(k.locator('button.due'), 'beim Schliessen das gewählte Datum').toHaveAttribute('aria-label', new RegExp(`${new Date(iso(5)).getDate()}\\.`));
+      expect(await page.evaluate(() => window.kopfFrei.eventCount()) - vorher, 'genau eine Änderung').toBe(1);
 
       await gehe(page, 'test/#projects');
       await page.locator('#main .row-title', { hasText: 'Velo winterfit' }).tap();

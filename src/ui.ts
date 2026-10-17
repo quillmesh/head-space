@@ -16,7 +16,7 @@ import type { Item, ListName, Project } from './types';
 import { changedFields, restorePoints, Q, addDays, all, colorKeyOf, daysSince, dueState, esc, fmtDate, fmtTs, inClosedProject, initials, isOpen, orderConflicts, project, projColor, PROJECT_COLORS, subtasksOf, today, toClarify, usedColorKeys, type DueState } from './logic';
 import { lastSeenVersion, notesSince, parseNotes, type ReleaseNote } from './notes';
 import NOTES_MD from '../RELEASE-NOTES.md' with { type: 'text' };
-import { ctxBadge, ctxLabel, ctxWithName, itemSymbol, noneBadge, waitBadge } from './icons';
+import { ctxBadge, ctxIcon, ctxLabel, ctxWithName, itemSymbol, noneBadge, waitBadge } from './icons';
 export { today } from './logic';
 
 // ---------- Hilfsfunktionen ----------
@@ -37,10 +37,14 @@ let ctxFilter = 'all';
 let backupText: string | null = null;
 let busy = false;
 
-type Step = 'actionable' | 'not' | 'multi' | 'project' | 'twomin' | 'donow' | 'who' | 'next' | 'delegate';
+/** Klären (0.13, Vorschlag B): erste Frage, dann ein Blatt mit Zielen */
+type Step = 'actionable' | 'not' | 'yes';
+type Goal = 'done' | 'next' | 'deleg' | 'proj';
+type NotGoal = 'trash' | 'ref' | 'some';
 type Modal =
   | null
-  | { kind: 'clarify'; id: string; step: Step; hist: Step[]; title: string; series: boolean }
+  | { kind: 'clarify'; id: string; step: Step; hist: Step[]; title: string; series: boolean; goal?: Goal; not?: NotGoal; ctx?: string | null }
+  | { kind: 'quick'; id: string }
   | { kind: 'edit'; id: string }
   | { kind: 'project'; id: string | null }
   | { kind: 'capture' }
@@ -158,8 +162,10 @@ function dueSlot(kind: 'item' | 'project', id: string, due: string | null | unde
  * Attribute einer Aufgabe in festen Plätzen, damit nichts verrutscht:
  * Kontext | Fällig | Erinnerung (Erst ab / Nachfassen) | Projekt und weitere.
  */
-function meta(it: Item, opts: { project?: boolean; list?: boolean } = {}): string {
+function meta(it: Item, opts: { project?: boolean; list?: boolean; clarify?: boolean } = {}): string {
   const open = isOpen(it) && it.list !== 'reference';
+  // Inbox (0.13): kein Datum setzen, nur „Geklärt“ und „Klären“
+  const due = open && !opts.clarify;
   // Kontext-Platz: Sanduhr bei „Warten auf“, sonst Kontext oder Fragezeichen
   const sym = itemSymbol(it);
   const ctx = sym === 'waiting' ? waitBadge(it.waitingFor) : sym === 'none' ? noneBadge() : sym ? ctxBadge(sym) : '';
@@ -178,9 +184,9 @@ function meta(it: Item, opts: { project?: boolean; list?: boolean } = {}): strin
   if (it.waitingFor) rest.push(`<span class="chip wait-chip">wartet auf ${esc(it.waitingFor)}</span>`);
   if (opts.list && it.list !== 'next') rest.push(`<span class="chip">${LIST_LABEL[it.list]}</span>`);
   if (it.notes && it.list !== 'reference') rest.push(`<span class="chip note-chip" title="Hat Notizen">Notiz</span><span class="note-ico" title="Hat Notizen" aria-hidden="true">${NOTE_SVG}</span>`);
-  if (!open && !ctx && !rest.length) return '';
+  if (!due && !ctx && !rem && !rest.length) return '';
   return `<div class="row-meta">
-    <span class="slot slot-ctx">${ctx}</span>${open ? dueSlot('item', it.id, it.due) : '<span class="slot slot-due"></span>'}<span class="slot slot-rem">${rem}</span><span class="slot slot-rest">${rest.join('')}</span>
+    <span class="slot slot-ctx">${ctx}</span>${due ? dueSlot('item', it.id, it.due) : '<span class="slot slot-due"></span>'}<span class="slot slot-rem">${rem}</span><span class="slot slot-rest">${rest.join('')}</span>
   </div>`;
 }
 
@@ -213,7 +219,7 @@ function row(it: Item, opts: RowOpts = {}): string {
       ${meta(it, opts)}
       ${it.list === 'reference' && it.notes ? `<span class="row-notes">${esc(it.notes.slice(0, 160))}</span>` : ''}
     </div>
-    ${opts.clarify ? `<button class="btn small" data-action="clarify" data-id="${it.id}">Klären</button>` : ''}
+    ${opts.clarify ? `<span class="inbox-btns"><button class="btn small" data-action="quick-done" data-id="${it.id}">Geklärt</button><button class="btn small" data-action="clarify" data-id="${it.id}">Klären</button></span>` : ''}
     ${opts.conflict ? `<button type="button" class="conflict-btn" data-action="conflict" data-id="${it.id}" aria-label="Frist-Konflikt: Erklärung anzeigen" title="Frist-Konflikt">${WARN_SVG}</button>` : ''}
     ${opts.drag ? `<button type="button" class="drag-handle" data-action="noop" data-drag="${it.id}" aria-label="Verschieben (Pfeiltasten oder ziehen)" title="Ziehen zum Verschieben">${GRIP_SVG}</button>` : ''}`);
 }
@@ -226,8 +232,9 @@ function projectRow(p: Project, status: string, icon = false): string {
     <div class="row-main" data-action="open-project" data-id="${p.id}">
       <button type="button" class="row-title proj-title" data-action="open-project" data-id="${p.id}">${esc(p.title)}</button>
       <div class="row-meta proj-meta">
-        ${dueSlot('project', p.id, p.due)}<span class="slot slot-status">${status}</span><span class="slot slot-rest">${p.outcome ? `<span class="chip muted">${esc(p.outcome.slice(0, 80))}</span>` : ''}</span>
+        ${dueSlot('project', p.id, p.due)}<span class="slot slot-status">${status}</span><span class="slot slot-rest"></span>
       </div>
+      ${p.outcome ? `<p class="proj-outcome">${esc(p.outcome)}</p>` : ''}
     </div>`, false);
 }
 
@@ -435,7 +442,7 @@ function viewSomeday(): string {
   const ps = Q.projects('someday');
   return `${head('Irgendwann/Vielleicht', 'Ideen und Wünsche ohne Verpflichtung. Schau sie bei der Wochendurchsicht an.')}
     ${ps.length ? `<h2 class="section">Projekte</h2><ul class="rows">${ps.map((p) => card(`row ${projColor(p.id)}`, p.id, 'project', `
-        <div class="row-main" data-action="open-project" data-id="${p.id}"><button type="button" class="row-title proj-title" data-action="open-project" data-id="${p.id}">${esc(p.title)}</button>${p.outcome ? `<span class="row-notes">${esc(p.outcome.slice(0, 80))}</span>` : ''}</div>
+        <div class="row-main" data-action="open-project" data-id="${p.id}"><button type="button" class="row-title proj-title" data-action="open-project" data-id="${p.id}">${esc(p.title)}</button>${p.outcome ? `<p class="proj-outcome">${esc(p.outcome)}</p>` : ''}</div>
         <button class="btn small" data-action="project-status" data-id="${p.id}" data-status="active">Aktivieren</button>`)).join('')}</ul>` : ''}
     ${its.length ? `${ps.length ? '<h2 class="section">Einzelne Ideen</h2>' : ''}${list(its)}` : ''}
     ${!its.length && !ps.length ? empty('Noch leer.', 'Beim Klären kannst du alles, was nicht jetzt dran ist, hierher schieben.') : ''}`;
@@ -713,6 +720,7 @@ function renderModal() {
   else if (modal.kind === 'close-project') html = closeProjectHtml(modal.id);
   else if (modal.kind === 'reopen') html = reopenHtml(modal.id);
   else if (modal.kind === 'notes') html = notesHtml(modal.notes);
+  else if (modal.kind === 'quick') html = quickHtml(modal.id);
   else if (modal.kind === 'confirm') html = `
     <div class="sheet">
       <p>${esc(modal.text)}</p>
@@ -724,90 +732,82 @@ function renderModal() {
   first?.focus();
 }
 
+/** Kontext als Symbole zum Antippen (Klären, 0.13); Wert im versteckten Feld „context“ */
+function ctxChips(selected: string | null): string {
+  return `<div class="field"><span class="field-label">Kontext</span>
+    <input type="hidden" name="context" value="${esc(selected ?? '')}">
+    <div class="ctx-chips" role="group" aria-label="Kontext">${S.state.contexts.map((c) =>
+      `<button type="button" class="ctx-chip" data-action="clarify-ctx" data-ctx="${esc(c)}" aria-pressed="${c === selected}" title="${esc(ctxLabel(c))}" aria-label="${esc(ctxLabel(c))}">${ctxIcon(c, 22)}</button>`).join('')}</div>
+    <span class="ctx-chip-name">${selected ? esc(ctxLabel(selected)) : 'Ohne Kontext'}</span></div>`;
+}
+
+/** „Geklärt“ in der Inbox (0.13): schon erledigt oder löschen */
+function quickHtml(id: string): string {
+  const it = S.state.items.get(id);
+  if (!it) return '';
+  return `
+    <div class="sheet">
+      <div class="sheet-head"><h2>Geklärt</h2><button type="button" class="link" data-action="close">Abbrechen</button></div>
+      <p><strong>${esc(it.title)}</strong></p>
+      <div class="stack-btns">
+        <button type="button" class="btn primary" data-action="quick-go" data-id="${it.id}" data-to="done">Schon erledigt</button>
+        <button type="button" class="btn" data-action="quick-go" data-id="${it.id}" data-to="trash">Löschen</button>
+      </div>
+      <p class="hint">„Schon erledigt“ legt die Aufgabe unter „Erledigt“ ab, „Löschen“ in den Papierkorb.</p>
+    </div>`;
+}
+
 function clarifyHtml(m: Extract<Modal, { kind: 'clarify' }>): string {
   const it = S.state.items.get(m.id);
   if (!it) return '';
   const queue = toClarify();
   const pos = queue.findIndex((i) => i.id === m.id) + 1;
-  const q = (question: string, help: string, body: string) => `
-    <h3 class="question">${question}</h3>${help ? `<p class="hint">${help}</p>` : ''}${body}`;
-  const yesNo = (yes: string, no: string, yesLabel = 'Ja', noLabel = 'Nein') => `
-    <div class="choice">
-      <button class="btn choice-btn" data-action="step" data-step="${yes}">${yesLabel}</button>
-      <button class="btn choice-btn" data-action="step" data-step="${no}">${noLabel}</button>
-    </div>`;
+  const tile = (action: string, val: string, on: boolean, title: string, sub: string, wide = false) =>
+    `<button type="button" class="tile${wide ? ' wide' : ''}" data-action="${action}" data-val="${val}" aria-pressed="${on}"><strong>${title}</strong><span>${sub}</span></button>`;
+  const dateField = (id: string, name: string, label: string, value = '') =>
+    `<div class="field"><label for="${id}">${label}</label><input id="${id}" name="${name}" type="date" min="${today()}" value="${value}"></div>`;
   let body = '';
-  switch (m.step) {
-    case 'actionable':
-      body = q('Ist das umsetzbar?', 'Musst oder willst du dazu etwas tun?', yesNo('multi', 'not'));
-      break;
-    case 'not':
-      body = q('Was soll damit passieren?', '', `
-        <div class="options">
-          <button class="btn option" data-action="clarify-trash"><strong>Wegwerfen</strong><span>Brauchst du nicht mehr.</span></button>
-          <button class="btn option" data-action="clarify-reference"><strong>Als Referenz ablegen</strong><span>Nützliche Information, keine Handlung.</span></button>
-          <form class="option-form" data-form="clarify-someday">
-            <strong>Irgendwann/Vielleicht</strong><span>Vielleicht später. Optional an einem Tag wieder vorlegen.</span>
-            <div class="inline">
-              <label for="someday-date">Wieder vorlegen am</label>
-              <input id="someday-date" name="tickler" type="date" min="${today()}">
-              <button class="btn" type="submit">Ablegen</button>
-            </div>
-          </form>
-        </div>`);
-      break;
-    case 'multi':
-      body = q('Braucht es mehr als einen Schritt?', 'Dann ist es ein Projekt, zum Beispiel „Ferien planen“ statt „Hotel buchen“.',
-        yesNo('project', 'twomin', 'Ja, ein Projekt', 'Nein, ein Schritt'));
-      break;
-    case 'project':
-      body = q('Projekt anlegen', '', `
-        <form class="stack" data-form="clarify-project">
-          <div class="field"><label for="p-title">Projektname</label><input id="p-title" name="ptitle" value="${esc(m.title)}" required></div>
-          <div class="field"><label for="p-outcome">Gewünschtes Ergebnis</label><input id="p-outcome" name="outcome" placeholder="Woran erkennst du, dass es fertig ist?"></div>
-          <div class="field"><label for="p-due">Projekt fällig am (optional)</label><input id="p-due" name="due" type="date" min="${today()}"></div>
-          <div class="field"><label for="p-next">Nächster Schritt</label><input id="p-next" name="next" placeholder="Die nächste sichtbare, physische Handlung" required></div>
-          <div class="field"><label for="p-ctx">Kontext</label><select id="p-ctx" name="context">${contextOptions(null)}</select></div>
-          <div class="actions-row end"><button class="btn primary" type="submit">Projekt anlegen</button></div>
-        </form>`);
-      break;
-    case 'twomin':
-      body = q('Dauert es weniger als zwei Minuten?', 'Dann ist Erledigen schneller als Ablegen.', yesNo('donow', 'who'));
-      break;
-    case 'donow':
-      body = q('Dann erledige es jetzt.', 'Komm zurück, wenn du fertig bist.', `
-        <div class="choice">
-          <button class="btn primary choice-btn" data-action="clarify-done">Erledigt</button>
-          <button class="btn choice-btn" data-action="step" data-step="who">Dauert doch länger</button>
-        </div>`);
-      break;
-    case 'who':
-      body = q('Bist du die richtige Person dafür?', '', yesNo('next', 'delegate', 'Ja, mache ich', 'Nein, delegieren'));
-      break;
-    case 'next':
-      body = q('Nächster Schritt', 'Formuliere eine konkrete Handlung. Der Titel oben ist editierbar.', `
-        <form class="stack" data-form="clarify-next">
-          <div class="field"><label for="n-ctx">Kontext</label><select id="n-ctx" name="context">${contextOptions(it.context)}</select></div>
-          <div class="field"><label for="n-proj">Gehört zu Projekt</label><select id="n-proj" name="projectId">${projectOptions(it.projectId)}</select></div>
-          <div class="grid2">
-            <div class="field"><label for="n-due">Fällig am (optional)</label><input id="n-due" name="due" type="date" min="${today()}" value="${it.due ?? ''}"></div>
-            <div class="field"><label for="n-tickler">Erst ab (optional)</label><input id="n-tickler" name="tickler" type="date" min="${today()}"></div>
-          </div>
-          <div class="actions-row end"><button class="btn primary" type="submit">Als nächsten Schritt ablegen</button></div>
-        </form>`);
-      break;
-    case 'delegate':
-      body = q('An wen geht es?', 'Du gibst die Aufgabe ab und behältst sie unter „Warten auf“ im Blick.', `
-        <form class="stack" data-form="clarify-delegate">
-          <div class="field"><label for="d-who">Person</label><input id="d-who" name="who" placeholder="Name" required></div>
-          <div class="grid2">
-            <div class="field"><label for="d-due">Fällig am (optional)</label><input id="d-due" name="due" type="date" min="${today()}" value="${it.due ?? ''}"></div>
-            <div class="field"><label for="d-date">Nachfassen am (optional)</label><input id="d-date" name="tickler" type="date" min="${today()}"></div>
-          </div>
-          <div class="field"><label for="d-proj">Gehört zu Projekt</label><select id="d-proj" name="projectId">${projectOptions(it.projectId)}</select></div>
-          <div class="actions-row end"><button class="btn primary" type="submit">Zu „Warten auf“</button></div>
-        </form>`);
-      break;
+  if (m.step === 'actionable') {
+    body = `<h3 class="question">Ist das umsetzbar?</h3><p class="hint">Musst oder willst du dazu etwas tun?</p>
+      <div class="choice">
+        <button class="btn primary choice-btn" data-action="step" data-step="yes">Ja</button>
+        <button class="btn choice-btn" data-action="step" data-step="not">Nein</button>
+      </div>`;
+  } else if (m.step === 'not') {
+    const LABEL: Record<NotGoal, string> = { trash: 'Wegwerfen', ref: 'Als Referenz ablegen', some: 'Ablegen' };
+    body = `<h3 class="question">Was soll damit passieren?</h3>
+      <form class="stack" data-form="clarify-not">
+        <div class="tiles">
+          ${tile('clarify-not', 'trash', m.not === 'trash', 'Wegwerfen', 'Brauchst du nicht mehr.', true)}
+          ${tile('clarify-not', 'ref', m.not === 'ref', 'Referenz', 'Information, keine Handlung.', true)}
+          ${tile('clarify-not', 'some', m.not === 'some', 'Irgendwann/Vielleicht', 'Vielleicht später, optional wieder vorlegen.', true)}
+        </div>
+        ${m.not === 'some' ? `<div class="expand">${dateField('someday-date', 'tickler', 'Wieder vorlegen am (optional)')}</div>` : ''}
+        <div class="actions-row end"><button class="btn primary" type="submit"${m.not ? '' : ' disabled'}>${m.not ? LABEL[m.not] : 'Ziel wählen'}</button></div>
+      </form>`;
+  } else {
+    const g = m.goal;
+    let more = '';
+    if (g === 'done') more = '<p class="hint">Unter zwei Minuten: gleich erledigen, dann hier bestätigen.</p>';
+    if (g === 'next') more = `${ctxChips(m.ctx ?? it.context ?? null)}
+      <div class="grid2">${dateField('n-due', 'due', 'Fällig am (optional)', it.due ?? '')}${dateField('n-tickler', 'tickler', 'Erst ab (optional)')}</div>
+      <div class="field"><label for="n-proj">Gehört zu Projekt</label><select id="n-proj" name="projectId">${projectOptions(it.projectId)}</select></div>`;
+    if (g === 'deleg') more = `<div class="field"><label for="d-who">An wen?</label><input id="d-who" name="who" placeholder="Name" required></div>
+      <div class="grid2">${dateField('d-due', 'due', 'Fällig am (optional)', it.due ?? '')}${dateField('d-date', 'tickler', 'Nachfassen am (optional)')}</div>`;
+    if (g === 'proj') more = `<div class="field"><label for="p-outcome">Gewünschtes Ergebnis</label><input id="p-outcome" name="outcome" placeholder="Woran erkennst du, dass es fertig ist?"></div>
+      <div class="field"><label for="p-next">Erster Schritt</label><input id="p-next" name="next" placeholder="Die nächste sichtbare Handlung" required></div>`;
+    const SAVE: Record<Goal, string> = { done: 'Erledigt', next: 'Als nächsten Schritt ablegen', deleg: 'Zu „Warten auf“', proj: 'Projekt anlegen' };
+    body = `<h3 class="question">Wohin gehört es?</h3>
+      <form class="stack" data-form="clarify-yes">
+        <div class="tiles">
+          ${tile('clarify-goal', 'done', g === 'done', 'Erledigt', 'Unter 2 Min., gleich gemacht')}
+          ${tile('clarify-goal', 'next', g === 'next', 'Nächster Schritt', 'Ich mache es')}
+          ${tile('clarify-goal', 'deleg', g === 'deleg', 'Delegieren', 'Jemand anderes macht es')}
+          ${tile('clarify-goal', 'proj', g === 'proj', 'Projekt', 'Braucht mehrere Schritte')}
+        </div>
+        ${g ? `<div class="expand">${more}</div>` : ''}
+        <div class="actions-row end"><button class="btn primary" type="submit"${g ? '' : ' disabled'}>${g ? SAVE[g] : 'Ziel wählen'}</button></div>
+      </form>`;
   }
   return `
     <div class="sheet card">
@@ -1698,9 +1698,29 @@ function onClick(e: MouseEvent) {
       if (nxt) startClarify(nxt.id, true); else { modal = null; renderModal(); }
       break;
     }
-    case 'clarify-trash': finishClarify({ list: 'trash', prevList: 'inbox', tickler: null }, 'Weggeworfen.'); break;
-    case 'clarify-reference': finishClarify({ list: 'reference', tickler: null }, 'Als Referenz abgelegt.'); break;
-    case 'clarify-done': finishClarify({ list: 'done', completed: Date.now(), prevList: 'next', tickler: null }, 'Erledigt. Gut gemacht.'); break;
+    case 'clarify-goal': if (modal?.kind === 'clarify') { modal.goal = el.dataset.val as Goal; renderModal(); } break;
+    case 'clarify-not': if (modal?.kind === 'clarify') { modal.not = el.dataset.val as NotGoal; renderModal(); } break;
+    case 'clarify-ctx': {
+      // Kontext umschalten ohne neu zu zeichnen (Eingaben in den anderen Feldern bleiben)
+      if (modal?.kind !== 'clarify') break;
+      const c = el.dataset.ctx!;
+      const next = modal.ctx === c ? null : c;
+      modal.ctx = next;
+      const box = el.closest('.field');
+      box?.querySelectorAll<HTMLElement>('.ctx-chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ctx === next)));
+      const hidden = box?.querySelector<HTMLInputElement>('input[name=context]'); if (hidden) hidden.value = next ?? '';
+      const name = box?.querySelector('.ctx-chip-name'); if (name) name.textContent = next ? ctxLabel(next) : 'Ohne Kontext';
+      break;
+    }
+    case 'quick-done': modal = { kind: 'quick', id }; renderModal(); break;
+    case 'quick-go': {
+      const it = S.state.items.get(id);
+      modal = null; renderModal();
+      if (!it) break;
+      if (el.dataset.to === 'done') patchWithUndo(id, { list: 'done', completed: Date.now(), prevList: it.list, tickler: null }, `Erledigt: ${short(it.title)}`);
+      else patchWithUndo(id, { list: 'trash', prevList: it.list }, `Gelöscht: ${short(it.title)}`);
+      break;
+    }
     case 'new-project': modal = { kind: 'project', id: null }; renderModal(); break;
     case 'edit-project': modal = { kind: 'project', id }; renderModal(); break;
     case 'project-status': {
@@ -1763,23 +1783,27 @@ async function onSubmit(e: SubmitEvent) {
       if (n) toast(`Kontext „${ctxLabel(n)}“ hinzugefügt.`);
       break;
     }
-    case 'clarify-someday':
-      finishClarify({ list: 'someday', tickler: val(form, 'tickler') || null }, 'Auf Irgendwann/Vielleicht gelegt.');
-      break;
-    case 'clarify-project': {
-      if (modal?.kind !== 'clarify') return;
-      const pid = S.createProject({ title: val(form, 'ptitle'), outcome: val(form, 'outcome'), due: val(form, 'due') || null });
-      modal.title = val(form, 'next');
-      finishClarify({ list: 'next', projectId: pid, context: val(form, 'context') || null, tickler: null }, 'Projekt angelegt.',
-        () => S.patchProject(pid, { deleted: true }));
+    case 'clarify-not': {
+      if (modal?.kind !== 'clarify' || !modal.not) return;
+      if (modal.not === 'trash') finishClarify({ list: 'trash', prevList: 'inbox', tickler: null }, 'Weggeworfen.');
+      else if (modal.not === 'ref') finishClarify({ list: 'reference', tickler: null }, 'Als Referenz abgelegt.');
+      else finishClarify({ list: 'someday', tickler: val(form, 'tickler') || null }, 'Auf Irgendwann/Vielleicht gelegt.');
       break;
     }
-    case 'clarify-next':
-      finishClarify({ list: 'next', context: val(form, 'context') || null, projectId: val(form, 'projectId') || null, tickler: val(form, 'tickler') || null, due: val(form, 'due') || null }, 'Als nächsten Schritt abgelegt.');
+    case 'clarify-yes': {
+      if (modal?.kind !== 'clarify' || !modal.goal) return;
+      const g = modal.goal;
+      if (g === 'done') finishClarify({ list: 'done', completed: Date.now(), prevList: 'next', tickler: null }, 'Erledigt. Gut gemacht.');
+      else if (g === 'next') finishClarify({ list: 'next', context: val(form, 'context') || null, projectId: val(form, 'projectId') || null, tickler: val(form, 'tickler') || null, due: val(form, 'due') || null }, 'Als nächsten Schritt abgelegt.');
+      else if (g === 'deleg') finishClarify({ list: 'waiting', waitingFor: val(form, 'who'), tickler: val(form, 'tickler') || null, due: val(form, 'due') || null }, 'Zu „Warten auf“ hinzugefügt.');
+      else {
+        // Projekt: Name = Titel der Notiz, die Notiz selbst wird zum ersten Schritt
+        const pid = S.createProject({ title: modal.title.trim() || 'Neues Projekt', outcome: val(form, 'outcome') });
+        modal.title = val(form, 'next');
+        finishClarify({ list: 'next', projectId: pid, tickler: null }, 'Projekt angelegt.', () => S.patchProject(pid, { deleted: true }));
+      }
       break;
-    case 'clarify-delegate':
-      finishClarify({ list: 'waiting', waitingFor: val(form, 'who'), tickler: val(form, 'tickler') || null, projectId: val(form, 'projectId') || null, due: val(form, 'due') || null }, 'Zu „Warten auf“ hinzugefügt.');
-      break;
+    }
     case 'restore-custom': {
       const v = val(form, 'when');
       const ts = new Date(v).getTime();
@@ -1965,7 +1989,9 @@ function showStepDue(input: HTMLInputElement) {
 
 function onChange(e: Event) {
   const el = e.target as HTMLInputElement;
-  if (el.classList.contains('due-input')) { takeDue(el, true); return; }
+  // iPad/iPhone melden „change“ schon beim Öffnen (heute vorausgewählt) und bei jedem Drehen am Rad. Solange das
+  // Feld den Fokus hat, ist die Auswahl offen: erst beim Verlassen speichern, sonst schliesst das Neuzeichnen sie.
+  if (el.classList.contains('due-input')) { takeDue(el, false); return; }
   if (el.classList.contains('step-due-input')) { showStepDue(el); return; }
 }
 
