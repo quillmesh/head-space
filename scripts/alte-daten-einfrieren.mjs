@@ -119,6 +119,17 @@ try {
     await go('done'); await page.locator('#main .row-title', { hasText: 'Velo verkaufen' }).click();
     await page.locator('#main [data-action=restore]').first().click(); await page.click('#modal [data-mode=item]');
   });
+  // ab 0.13: „Geklärt“ in der Inbox und Klären mit Ziel-Kacheln
+  await step('Inbox: Geklärt → schon erledigt (ab 0.13)', async () => {
+    await go('inbox'); await page.fill('#capture-input', 'Kurz erledigt'); await page.keyboard.press('Enter');
+    await page.locator('#main li.row', { has: page.locator('.row-title', { hasText: 'Kurz erledigt' }) }).locator('[data-action=quick-done]').click();
+    await page.click('#modal [data-action=quick-go][data-to=done]');
+  });
+  await step('Klären: Ziel „Nächster Schritt“ mit Kontext (ab 0.13)', async () => {
+    await go('inbox'); await page.locator('#main li.row', { has: page.locator('.row-title', { hasText: 'Grüezi' }) }).locator('[data-action=clarify]').click();
+    await page.click('[data-step=yes]'); await page.click('[data-action=clarify-goal][data-val=next]');
+    await page.click('.ctx-chip[data-ctx="@Telefon"]'); await page.click('form[data-form=clarify-yes] button[type=submit]');
+  });
   await page.evaluate(() => window.kopfFrei?.whenSaved?.());
   console.log(`${version}: ${aktionen.join(' · ')}`);
 

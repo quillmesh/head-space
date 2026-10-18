@@ -1,16 +1,13 @@
-# Übergabe für eine neue Unterhaltung (Stand 13.10.2026)
+# Übergabe für eine neue Unterhaltung (Stand 18.10.2026)
 
 Zuerst `CLAUDE.md` lesen: Regeln, Ablauf, **erst fragen, dann umsetzen**.
 
 ## Stand
-- **Live** (`main`): Version **0.12.0**, freigegeben am 13.10.2026 (Commit `55e165d`), Änderungswünsche 1–6.
-- **Test** (`test`): Version **0.13.0**, wartet auf „freigeben“: 0.12.1 (Fahne auf iPad/iPhone) und Wünsche 7–9
-  (Fahne bleibt offen, Projektergebnis lesbar, „Geklärt“ und einfacheres Klären). Liste im Claude-Projekt
-  „Kopf frei – Änderungswünsche“.
+- **Live** (`main`) und **Test** (`test`): Version **0.13.0**, freigegeben am 18.10.2026 (Commit `27ccd70`).
+  Enthält die Änderungswünsche 1–9 (Liste im Claude-Projekt „Kopf frei – Änderungswünsche“).
+- Echte Daten bis 0.13.0 eingefroren; das Einfrier-Skript erzeugt ab 0.13 auch „Geklärt“ und Klären mit Ziel-Kacheln.
 - Adresse: Die App wird unter `quillmesh.github.io/head-space/` veröffentlicht. Das iPad des Nutzers hatte am 14.10.
   offenbar eine ältere Adresse offen (zeigte 0.12.0, obwohl 0.12.1 online war). Nutzer klärt das selbst.
-- Echte Daten von 0.11.0 und 0.12.0 eingefroren; das Einfrier-Skript erzeugt ab 0.12 auch Projektfarbe,
-  Unteraufgaben, Abschliessen mit offenen Aufgaben und Zurückholen „nur die Aufgabe“.
 
 ## Offene Punkte (vom Nutzer noch nicht freigegeben, nicht ohne OK umsetzen)
 1. **Falscher Update-Hinweis in der Live-App.** `build.mjs` setzt die Bau-Nummer (`__APP_BUILD__`, `VERSION` in `sw.js`) aus der Uhrzeit. Jeder Push auf `test` baut die ganze Website neu, also auch Live, und die Live-App meldet dann ein Update ohne Änderung. Vorschlag: Bau-Nummer aus dem Inhalt berechnen (Hash).
