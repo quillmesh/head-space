@@ -1,0 +1,881 @@
+{
+ "version": "0.14.0",
+ "commit": "1479fd3",
+ "erzeugt": "2026-10-22",
+ "aktionen": [
+  "Beispieleinträge laden",
+  "Bearbeiten: Liste, Kontext, Frist, Notiz",
+  "Warten auf: Nachfassen",
+  "Neues Projekt mit drei Schritten",
+  "Projekt: Schritt mit Pfeiltaste verschieben (ab 0.8)",
+  "Erledigen",
+  "Wischen: Aufgabe löschen",
+  "Papierkorb und leeren",
+  "Projektfarbe wählen (ab 0.12)",
+  "Unteraufgaben: anlegen, abhaken, umbenennen (ab 0.12)",
+  "Projekt abschliessen mit offenen Aufgaben (ab 0.12)",
+  "Aufgabe aus abgeschlossenem Projekt zurückholen: nur die Aufgabe (ab 0.12)",
+  "Inbox: Geklärt → schon erledigt (ab 0.13)",
+  "Klären: Ziel „Nächster Schritt“ mit Kontext (ab 0.13)",
+  "Wiederholung: wöchentlich setzen und erledigen (ab 0.14)"
+ ],
+ "ansichten": {
+  "inbox": [
+   "Beispiel: Artikel über Wochendurchsicht lesen",
+   "Beispiel: Idee für Geburtstagsgeschenk Anna",
+   "Beispiel: Steuererklärung"
+  ],
+  "next": [
+   "Abfall rausstellen",
+   "Beispiel: Velomechaniker anrufen und Termin für Service vereinbaren",
+   "Fotos machen",
+   "Grüezi aus 0.14.0 – Spass mit Umlauten"
+  ],
+  "waiting": [
+   "Beispiel: Offerte vom Elektriker"
+  ],
+  "someday": [
+   "Beispiel: Spanisch lernen"
+  ],
+  "reference": [],
+  "projects": [
+   "Beispiel: Velo für den Winter bereit machen"
+  ]
+ },
+ "ereignisse": [
+  {
+   "id": "320998ee-ca99-478a-8439-13e172b33620",
+   "ts": 1792667304554,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "context.add",
+   "data": {
+    "name": "@Computer"
+   },
+   "v": 1
+  },
+  {
+   "id": "6868d06f-23a4-4dc8-8cef-2247cae66ea9",
+   "ts": 1792667304555,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "context.add",
+   "data": {
+    "name": "@Telefon"
+   },
+   "v": 1
+  },
+  {
+   "id": "0fe57870-ca28-424c-8681-c984d12cf261",
+   "ts": 1792667304556,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "context.add",
+   "data": {
+    "name": "@Unterwegs"
+   },
+   "v": 1
+  },
+  {
+   "id": "5e649c72-30b7-41a7-938f-d1942883c246",
+   "ts": 1792667304557,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "context.add",
+   "data": {
+    "name": "@Zuhause"
+   },
+   "v": 1
+  },
+  {
+   "id": "c76df4bd-2923-4942-994d-dc8ed45bdb85",
+   "ts": 1792667304558,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "context.add",
+   "data": {
+    "name": "@Büro"
+   },
+   "v": 1
+  },
+  {
+   "id": "e9085568-d290-4bcf-b312-a8d3127edb9a",
+   "ts": 1792667304559,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "context.add",
+   "data": {
+    "name": "@Besprechung"
+   },
+   "v": 1
+  },
+  {
+   "id": "a9f7e2e3-13e7-442a-afcc-24c7a6f1137a",
+   "ts": 1792667304560,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "context.add",
+   "data": {
+    "name": "@Zug"
+   },
+   "v": 1
+  },
+  {
+   "id": "6b871225-af0c-4cf7-8f37-65a30a1a7ab7",
+   "ts": 1792667304561,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "context.add",
+   "data": {
+    "name": "@Einkaufen"
+   },
+   "v": 1
+  },
+  {
+   "id": "b6e11e4f-3ebc-4af8-a733-86345053f6c2",
+   "ts": 1792667304669,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "project.create",
+   "data": {
+    "id": "0f62dc5e-cb63-48b1-a925-ca38ec4a562e",
+    "title": "Beispiel: Velo für den Winter bereit machen",
+    "outcome": "Velo läuft, Licht funktioniert, Winterreifen montiert",
+    "status": "active",
+    "due": "2026-11-12",
+    "created": 1792667304668,
+    "updated": 1792667304668,
+    "completed": null
+   },
+   "v": 1
+  },
+  {
+   "id": "69a273a9-4d7e-4d82-af82-324fd190b2dd",
+   "ts": 1792667304670,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.create",
+   "data": {
+    "title": "Beispiel: Velomechaniker anrufen und Termin für Service vereinbaren",
+    "notes": "",
+    "list": "next",
+    "context": "@Telefon",
+    "projectId": "0f62dc5e-cb63-48b1-a925-ca38ec4a562e",
+    "waitingFor": null,
+    "tickler": null,
+    "due": "2026-10-24",
+    "created": 1792667304669,
+    "updated": 1792667304669,
+    "completed": null,
+    "id": "c77a2fd7-1000-4f3c-b7ee-97e339223863"
+   },
+   "v": 1
+  },
+  {
+   "id": "37137ecd-1134-4f7e-930b-20efe5d9e3e5",
+   "ts": 1792667304671,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.create",
+   "data": {
+    "title": "Beispiel: Steuererklärung",
+    "notes": "",
+    "list": "inbox",
+    "context": null,
+    "projectId": null,
+    "waitingFor": null,
+    "tickler": null,
+    "due": "2026-11-21",
+    "created": 1792667304669,
+    "updated": 1792667304669,
+    "completed": null,
+    "id": "361864fc-a7a8-463f-82fa-88927bd2db52"
+   },
+   "v": 1
+  },
+  {
+   "id": "6bbf75ce-e869-4cc2-8e25-42233b0108f3",
+   "ts": 1792667304672,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.create",
+   "data": {
+    "title": "Beispiel: Idee für Geburtstagsgeschenk Anna",
+    "notes": "",
+    "list": "inbox",
+    "context": null,
+    "projectId": null,
+    "waitingFor": null,
+    "tickler": null,
+    "due": null,
+    "created": 1792667304669,
+    "updated": 1792667304669,
+    "completed": null,
+    "id": "0a628089-e384-4064-ab40-c333baa8c609"
+   },
+   "v": 1
+  },
+  {
+   "id": "1f089856-6fbe-4388-8edd-70eb33d03cde",
+   "ts": 1792667304673,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.create",
+   "data": {
+    "title": "Beispiel: Artikel über Wochendurchsicht lesen",
+    "notes": "",
+    "list": "inbox",
+    "context": null,
+    "projectId": null,
+    "waitingFor": null,
+    "tickler": null,
+    "due": null,
+    "created": 1792667304669,
+    "updated": 1792667304669,
+    "completed": null,
+    "id": "26f46324-5924-462c-9388-dfe1ff5b56cc"
+   },
+   "v": 1
+  },
+  {
+   "id": "15a7569e-c244-4896-b25e-c06a6d6a6e66",
+   "ts": 1792667304674,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.create",
+   "data": {
+    "title": "Beispiel: Offerte vom Elektriker",
+    "notes": "",
+    "list": "waiting",
+    "context": null,
+    "projectId": null,
+    "waitingFor": "Elektro Huber",
+    "tickler": "2026-10-22",
+    "due": null,
+    "created": 1792667304669,
+    "updated": 1792667304669,
+    "completed": null,
+    "id": "8a3d30a8-79bc-4738-96fe-89ab9cfa9bd6"
+   },
+   "v": 1
+  },
+  {
+   "id": "0c91bfa9-dcb8-4cad-a4be-16a7a77ef8b6",
+   "ts": 1792667304675,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.create",
+   "data": {
+    "title": "Beispiel: Spanisch lernen",
+    "notes": "",
+    "list": "someday",
+    "context": null,
+    "projectId": null,
+    "waitingFor": null,
+    "tickler": null,
+    "due": null,
+    "created": 1792667304669,
+    "updated": 1792667304669,
+    "completed": null,
+    "id": "034cbb3d-4458-44a7-942b-2027594be552"
+   },
+   "v": 1
+  },
+  {
+   "id": "31ad4e35-4add-43f6-92f2-9370878e5ab4",
+   "ts": 1792667304892,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.create",
+   "data": {
+    "title": "Grüezi aus 0.14.0 – Spass mit Umlauten",
+    "notes": "",
+    "list": "inbox",
+    "context": null,
+    "projectId": null,
+    "waitingFor": null,
+    "tickler": null,
+    "due": null,
+    "created": 1792667304892,
+    "updated": 1792667304892,
+    "completed": null,
+    "id": "cf447573-ddac-4884-b1d2-b21c70311dd8"
+   },
+   "v": 1
+  },
+  {
+   "id": "4edfe5bc-63cd-484d-8c87-8075f3479859",
+   "ts": 1792667304911,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.create",
+   "data": {
+    "title": "Wohnung kündigen",
+    "notes": "",
+    "list": "inbox",
+    "context": null,
+    "projectId": null,
+    "waitingFor": null,
+    "tickler": null,
+    "due": null,
+    "created": 1792667304911,
+    "updated": 1792667304911,
+    "completed": null,
+    "id": "a152dc5d-803f-4edd-9f55-db6b1ece785a"
+   },
+   "v": 1
+  },
+  {
+   "id": "1b9ae224-84b2-4ab5-a20b-6f5c2e5929fa",
+   "ts": 1792667304926,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.create",
+   "data": {
+    "title": "Wird gewischt",
+    "notes": "",
+    "list": "inbox",
+    "context": null,
+    "projectId": null,
+    "waitingFor": null,
+    "tickler": null,
+    "due": null,
+    "created": 1792667304926,
+    "updated": 1792667304926,
+    "completed": null,
+    "id": "1e56c2f7-fc6f-4093-a09f-6ca01d5052a6"
+   },
+   "v": 1
+  },
+  {
+   "id": "d246c66f-bdae-4730-9112-8c82a72eb37c",
+   "ts": 1792667304942,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.create",
+   "data": {
+    "title": "In den Papierkorb",
+    "notes": "",
+    "list": "inbox",
+    "context": null,
+    "projectId": null,
+    "waitingFor": null,
+    "tickler": null,
+    "due": null,
+    "created": 1792667304942,
+    "updated": 1792667304942,
+    "completed": null,
+    "id": "196cd6fd-62b0-4808-91ff-c9b6673a65f5"
+   },
+   "v": 1
+  },
+  {
+   "id": "f431d19d-eab9-4262-aa58-cf4ef5be0734",
+   "ts": 1792667305225,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "a152dc5d-803f-4edd-9f55-db6b1ece785a",
+    "patch": {
+     "notes": "Belege im Ordner „2025“",
+     "list": "next",
+     "context": "@Computer",
+     "due": "2026-11-30"
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "d4040195-0ab9-4296-a3ab-2fa9a51b3988",
+   "ts": 1792667305757,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "8a3d30a8-79bc-4738-96fe-89ab9cfa9bd6",
+    "patch": {
+     "tickler": "2026-10-20"
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "a38f6e38-17b1-4afc-ba68-70c1a1cf3e4f",
+   "ts": 1792667306205,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "project.create",
+   "data": {
+    "id": "0be135ec-a95b-4c17-8b5f-f46dc268a3a6",
+    "title": "Velo verkaufen",
+    "outcome": "",
+    "status": "active",
+    "due": null,
+    "created": 1792667306205,
+    "updated": 1792667306205,
+    "completed": null
+   },
+   "v": 1
+  },
+  {
+   "id": "61fccddd-1874-4fd5-bb04-7d7616402314",
+   "ts": 1792667306206,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.create",
+   "data": {
+    "title": "Fotos machen",
+    "notes": "",
+    "list": "next",
+    "context": null,
+    "projectId": "0be135ec-a95b-4c17-8b5f-f46dc268a3a6",
+    "waitingFor": null,
+    "tickler": null,
+    "due": null,
+    "created": 1792667306205,
+    "updated": 1792667306205,
+    "completed": null,
+    "id": "92505126-e580-4ef8-80ab-cf06c151b444"
+   },
+   "v": 1
+  },
+  {
+   "id": "b14ade82-813a-4b18-918e-1d0b4a37d5c8",
+   "ts": 1792667306229,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.create",
+   "data": {
+    "title": "Inserat schreiben",
+    "notes": "",
+    "list": "next",
+    "context": null,
+    "projectId": "0be135ec-a95b-4c17-8b5f-f46dc268a3a6",
+    "waitingFor": null,
+    "tickler": null,
+    "due": null,
+    "created": 1792667306229,
+    "updated": 1792667306229,
+    "completed": null,
+    "id": "a418915b-765d-4269-bdb4-71f9d325572a"
+   },
+   "v": 1
+  },
+  {
+   "id": "2313ace0-174b-41e6-867b-15d737f93354",
+   "ts": 1792667306245,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.create",
+   "data": {
+    "title": "Preis recherchieren",
+    "notes": "",
+    "list": "next",
+    "context": null,
+    "projectId": "0be135ec-a95b-4c17-8b5f-f46dc268a3a6",
+    "waitingFor": null,
+    "tickler": null,
+    "due": null,
+    "created": 1792667306245,
+    "updated": 1792667306245,
+    "completed": null,
+    "id": "b3a83b80-7634-4738-ace6-f3e9015530c5"
+   },
+   "v": 1
+  },
+  {
+   "id": "c15558e1-bb26-4b7f-9b22-d42813dd2584",
+   "ts": 1792667306419,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "92505126-e580-4ef8-80ab-cf06c151b444",
+    "patch": {
+     "order": 1000
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "fd8ebb2d-f0a0-4b66-836d-bb75a9a68e9c",
+   "ts": 1792667306420,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "b3a83b80-7634-4738-ace6-f3e9015530c5",
+    "patch": {
+     "order": 2000
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "9dbcd80d-12b9-405a-9ff6-5c5011645bfc",
+   "ts": 1792667306421,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "a418915b-765d-4269-bdb4-71f9d325572a",
+    "patch": {
+     "order": 3000
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "914f9f7f-5b10-447a-9df2-1cb4843b95ca",
+   "ts": 1792667309858,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "a152dc5d-803f-4edd-9f55-db6b1ece785a",
+    "patch": {
+     "list": "done",
+     "completed": 1792667309858,
+     "prevList": "next"
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "ebee8f74-742f-4de2-bec4-5495d66b7f9a",
+   "ts": 1792667310286,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "1e56c2f7-fc6f-4093-a09f-6ca01d5052a6",
+    "patch": {
+     "list": "trash",
+     "prevList": "inbox"
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "ab1aa741-92e1-49f7-b4fb-be75312e1bdd",
+   "ts": 1792667310757,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "196cd6fd-62b0-4808-91ff-c9b6673a65f5",
+    "patch": {
+     "list": "trash",
+     "prevList": "inbox"
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "b5e154d1-385e-40d9-ab3e-9a2f9349a7cd",
+   "ts": 1792667311074,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "1e56c2f7-fc6f-4093-a09f-6ca01d5052a6",
+    "patch": {
+     "deleted": true,
+     "title": "",
+     "notes": "",
+     "subtasks": []
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "67237926-afce-4221-b4d1-b30fdd06e02d",
+   "ts": 1792667311075,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "196cd6fd-62b0-4808-91ff-c9b6673a65f5",
+    "patch": {
+     "deleted": true,
+     "title": "",
+     "notes": "",
+     "subtasks": []
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "6121d033-fc22-4494-9765-3e61ec1617bf",
+   "ts": 1792667314590,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "project.patch",
+   "data": {
+    "id": "0be135ec-a95b-4c17-8b5f-f46dc268a3a6",
+    "patch": {
+     "color": "wein"
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "110f4314-9fa8-441b-9611-7cce54ba0b1e",
+   "ts": 1792667315191,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.sub",
+   "data": {
+    "id": "a418915b-765d-4269-bdb4-71f9d325572a",
+    "sid": "1f1225fd-9e79-47e8-bccc-215f739afc86",
+    "patch": {
+     "title": "Vertrag suchen",
+     "done": false
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "a4613ee9-5f97-47ff-91f7-ababdc9c9b80",
+   "ts": 1792667315192,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.sub",
+   "data": {
+    "id": "a418915b-765d-4269-bdb4-71f9d325572a",
+    "sid": "1ccba8b6-ffdb-47e0-ade4-b4e70b6886b4",
+    "patch": {
+     "title": "Brief schreiben",
+     "done": false
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "59e24804-7a87-4681-aef6-97a64915a46c",
+   "ts": 1792667315488,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.sub",
+   "data": {
+    "id": "a418915b-765d-4269-bdb4-71f9d325572a",
+    "sid": "1f1225fd-9e79-47e8-bccc-215f739afc86",
+    "patch": {
+     "done": true
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "37275d52-fa98-451d-ae92-dabacc7ce55b",
+   "ts": 1792667315538,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.sub",
+   "data": {
+    "id": "a418915b-765d-4269-bdb4-71f9d325572a",
+    "sid": "1ccba8b6-ffdb-47e0-ade4-b4e70b6886b4",
+    "patch": {
+     "title": "Brief eingeschrieben schicken"
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "b48fff73-fed4-4205-9a25-d7118f8be33c",
+   "ts": 1792667316040,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "92505126-e580-4ef8-80ab-cf06c151b444",
+    "patch": {
+     "list": "done",
+     "completed": 1792667316040,
+     "prevList": "next"
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "01d0380a-919b-4eec-98f3-712432d5086d",
+   "ts": 1792667316042,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "a418915b-765d-4269-bdb4-71f9d325572a",
+    "patch": {
+     "list": "done",
+     "completed": 1792667316042,
+     "prevList": "next"
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "8f7af476-c82b-4d02-ae48-55513e38c066",
+   "ts": 1792667316043,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "b3a83b80-7634-4738-ace6-f3e9015530c5",
+    "patch": {
+     "list": "done",
+     "completed": 1792667316043,
+     "prevList": "next"
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "fd082ff3-0570-4412-816c-f5d154a7f03b",
+   "ts": 1792667316045,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "project.patch",
+   "data": {
+    "id": "0be135ec-a95b-4c17-8b5f-f46dc268a3a6",
+    "patch": {
+     "status": "done",
+     "completed": 1792667316045
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "9e1c1c64-594a-44fb-ab48-1e71b504f889",
+   "ts": 1792667316539,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "92505126-e580-4ef8-80ab-cf06c151b444",
+    "patch": {
+     "list": "next",
+     "completed": null,
+     "prevList": null
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "fec561bc-520f-4c9a-9d12-bc2142920df9",
+   "ts": 1792667316540,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "92505126-e580-4ef8-80ab-cf06c151b444",
+    "patch": {
+     "projectId": null,
+     "order": null
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "2bce8117-4599-4027-a1ad-48d8b8d07820",
+   "ts": 1792667316725,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.create",
+   "data": {
+    "title": "Kurz erledigt",
+    "notes": "",
+    "list": "inbox",
+    "context": null,
+    "projectId": null,
+    "waitingFor": null,
+    "tickler": null,
+    "due": null,
+    "created": 1792667316724,
+    "updated": 1792667316724,
+    "completed": null,
+    "id": "eb8ad177-e198-4c26-8252-88f961eff0a9"
+   },
+   "v": 1
+  },
+  {
+   "id": "d8f6179c-76b6-4e27-afc3-2d5069117c21",
+   "ts": 1792667317021,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "eb8ad177-e198-4c26-8252-88f961eff0a9",
+    "patch": {
+     "list": "done",
+     "completed": 1792667317021,
+     "prevList": "inbox",
+     "tickler": null
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "f4f9b25e-b437-48f6-8779-b6c848c4b6f9",
+   "ts": 1792667318021,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "cf447573-ddac-4884-b1d2-b21c70311dd8",
+    "patch": {
+     "title": "Grüezi aus 0.14.0 – Spass mit Umlauten",
+     "list": "next",
+     "context": "@Telefon",
+     "projectId": null,
+     "tickler": null,
+     "due": null,
+     "repeat": null
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "30579582-06ee-4946-a88c-db9703dae110",
+   "ts": 1792667318193,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.create",
+   "data": {
+    "title": "Abfall rausstellen",
+    "notes": "",
+    "list": "inbox",
+    "context": null,
+    "projectId": null,
+    "waitingFor": null,
+    "tickler": null,
+    "due": null,
+    "created": 1792667318193,
+    "updated": 1792667318193,
+    "completed": null,
+    "id": "bf3d4a98-7c6b-4b8d-a0f0-8d6f0966bedb"
+   },
+   "v": 1
+  },
+  {
+   "id": "6d92c946-6058-41ae-b8bd-154192509878",
+   "ts": 1792667319021,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "bf3d4a98-7c6b-4b8d-a0f0-8d6f0966bedb",
+    "patch": {
+     "title": "Abfall rausstellen",
+     "list": "next",
+     "context": null,
+     "projectId": null,
+     "tickler": null,
+     "due": "2026-10-22",
+     "repeat": {
+      "kind": "week",
+      "days": [
+       3
+      ]
+     }
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "70d53f29-abdd-4cce-971b-50a66c9c2b1d",
+   "ts": 1792667319290,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.patch",
+   "data": {
+    "id": "bf3d4a98-7c6b-4b8d-a0f0-8d6f0966bedb",
+    "patch": {
+     "list": "done",
+     "completed": 1792667319290,
+     "prevList": "next"
+    }
+   },
+   "v": 1
+  },
+  {
+   "id": "f82c571a-212a-4163-a8fb-d68f9cf84a17",
+   "ts": 1792667319291,
+   "device": "49b90907-8a4d-4b40-8851-c75c898ab2ef",
+   "type": "item.create",
+   "data": {
+    "title": "Abfall rausstellen",
+    "notes": "",
+    "list": "next",
+    "context": null,
+    "projectId": null,
+    "waitingFor": null,
+    "tickler": null,
+    "due": "2026-10-29",
+    "created": 1792667319290,
+    "updated": 1792667319290,
+    "completed": null,
+    "id": "bf3d4a98-7c6b-4b8d-a0f0-8d6f0966bedb~2026-10-29",
+    "repeat": {
+     "kind": "week",
+     "days": [
+      3
+     ]
+    },
+    "series": "bf3d4a98-7c6b-4b8d-a0f0-8d6f0966bedb",
+    "subtasks": []
+   },
+   "v": 1
+  }
+ ]
+}

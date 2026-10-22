@@ -3,10 +3,9 @@
 Zuerst `CLAUDE.md` lesen: Regeln, Ablauf, **erst fragen, dann umsetzen**.
 
 ## Stand
-- **Live** (`main`): Version **0.13.0**, freigegeben am 18.10.2026 (Commit `27ccd70`), Änderungswünsche 1–9.
-- **Test** (`test`): Version **0.14.0**, wartet auf „freigeben“: Wünsche 10–12 (Inbox rot, Papierkorb nach 30 Tagen,
-  Wiederholungen). Liste im Claude-Projekt „Kopf frei – Änderungswünsche“.
-- Echte Daten bis 0.13.0 eingefroren.
+- **Live** (`main`) und **Test** (`test`): Version **0.14.0**, freigegeben am 22.10.2026 (Commit `1479fd3`).
+  Enthält die Änderungswünsche 1–12 (Liste im Claude-Projekt „Kopf frei – Änderungswünsche“).
+- Echte Daten bis 0.14.0 eingefroren; das Einfrier-Skript erzeugt ab 0.14 auch eine Wiederholung und erledigt sie.
 - Adresse: Die App wird unter `quillmesh.github.io/head-space/` veröffentlicht.
 
 ## Offene Punkte (vom Nutzer noch nicht freigegeben, nicht ohne OK umsetzen)
