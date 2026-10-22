@@ -412,3 +412,16 @@ describe('Projekt abschliessen und zurückholen (0.12)', () => {
     expect(L.Q.next().map((i) => i.title)).toEqual(['A']);
   });
 });
+
+describe('Zweimal angelegt (0.14)', () => {
+  test('Ein zweites „anlegen“ mit derselben ID ändert nichts (zwei Geräte legen dieselbe Wiederholung an)', async () => {
+    const id = S.capture('Serie', { list: 'next', repeat: { kind: 'week', days: [0] }, due: L.addDays(L.today(), -1) });
+    const n = S.completeItem(id)!;
+    S.patchItem(n, { title: 'geändert' });
+    await S.whenSaved();
+    const evs = await db.allEvents();
+    const created = evs.find((e) => e.type === 'item.create' && e.data.id === n)!;
+    await S.mergeEvents([{ ...created, id: 'anderes-geraet', device: 'B', ts: evs[evs.length - 1].ts + 5 }]);
+    expect(S.state.items.get(n)!.title).toBe('geändert');
+  });
+});

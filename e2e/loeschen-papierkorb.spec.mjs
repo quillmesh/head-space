@@ -136,3 +136,31 @@ test.describe('Papierkorb auf dem iPad', () => {
     await expect(karte(page, 'Hotel in Ascona'), 'nicht im Papierkorb (endgültig)').toHaveCount(0);
   });
 });
+
+test.describe('Nach 30 Tagen im Papierkorb (0.14, berechnet)', () => {
+  test.use(HANDY);
+  test('Erledigtes über 30 Tage: im Papierkorb, nicht unter Erledigt; Zurückholen; Projekt nach 31 Tagen', async ({ page }) => {
+    await gehe(page, 'test/#done');
+    const pneu = page.locator('#main li.row', { hasText: 'Sommerpneus' });
+    await expect(page.locator('#main h2.section', { hasText: 'Papierkorb' })).toBeVisible();
+    await expect(pneu.locator('[data-action=restore]'), 'im Papierkorb mit Zurückholen').toHaveCount(1);
+    await pneu.locator('[data-action=restore]').tap();
+    await gehe(page, 'test/#next');
+    await expect(karte(page, 'Sommerpneus')).toHaveCount(1);
+
+    // Projekt abschliessen, 31 Tage später liegt es im Papierkorb
+    await page.clock.install();
+    await gehe(page, 'test/#projects');
+    await page.locator('#main .row-title', { hasText: 'Wohnzimmer' }).tap();
+    await page.locator('[data-action=close-project]').tap();
+    await page.locator('#modal [data-action=close-project-go][data-with="1"]').tap();
+    await page.clock.setSystemTime(new Date(Date.now() + 31 * 24 * 3600 * 1000));
+    await gehe(page, 'test/#done');
+    await expect(page.locator('#main h2.section', { hasText: 'Abgeschlossene Projekte' }), 'nicht mehr unter Erledigt').toHaveCount(0);
+    await expect(page.locator('#main .row-title.proj-title', { hasText: 'Wohnzimmer' }), 'als Projekt im Papierkorb').toHaveCount(1);
+    await page.locator('[data-action=empty-trash]').tap();
+    await expect(page.locator('#modal')).toContainText('samt ihren Aufgaben');
+    await page.locator('#modal [data-action=confirm]').tap();
+    await expect(page.locator('#main .row-title', { hasText: 'Wohnzimmer' })).toHaveCount(0);
+  });
+});

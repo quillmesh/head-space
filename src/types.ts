@@ -35,7 +35,17 @@ export interface Item {
   order?: number | null;
   /** Unteraufgaben (0.12). Werden über das Ereignis „item.sub“ einzeln geändert, damit zwei Geräte sich nicht überschreiben. */
   subtasks?: Subtask[];
+  /** Wiederholung (0.14). null = einmalig. Jede Wiederholung ist eine eigene Aufgabe derselben Serie. */
+  repeat?: Repeat | null;
+  /** Serie (0.14): ID der ersten Aufgabe; Folge-Aufgaben haben die ID „<Serie>~<Datum>“. */
+  series?: string | null;
 }
+
+/** Wiederholung (0.14): wöchentlich an Wochentagen (0 = Montag … 6 = Sonntag), monatlich an Tag X, jährlich am Tag. */
+export type Repeat =
+  | { kind: 'week'; days: number[] }
+  | { kind: 'month'; day: number }
+  | { kind: 'year'; month: number; day: number };
 
 /** Unteraufgabe einer Aufgabe (0.12). Sichtbar nur im Dialog der Aufgabe. */
 export interface Subtask {
@@ -65,6 +75,8 @@ export interface Project {
   sequential?: boolean;
   /** Selbst gewählte Farbe (0.12), Schlüssel aus PROJECT_COLORS in logic.ts. null = automatisch nach Erstellung. */
   color?: string | null;
+  /** Zeitpunkt des Verwerfens (0.14), für „nach 30 Tagen im Papierkorb“. Fehlt bei älteren: letzte Änderung. */
+  droppedAt?: number | null;
 }
 
 /**

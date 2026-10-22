@@ -2,7 +2,7 @@
 // mit Daten relativ zu heute (überfällig, heute, bald, später).
 
 import * as S from './store';
-import { addDays, today } from './logic';
+import { addDays, nextOccurrence, today } from './logic';
 
 export function seedSample() {
   const d = (n: number) => addDays(today(), n);
@@ -28,10 +28,15 @@ export function seedSample() {
     S.capture('Zahnarzt-Termin verschieben', { list: 'next', context: '@Telefon', due: today() });
     S.capture('Altglas wegbringen', { list: 'next', context: '@Unterwegs' });
     S.capture('Reiseführer Tessin lesen', { list: 'next', context: '@Zug', projectId: ferien });
+    // Wiederholung (0.14): jeden Mittwoch und Sonntag
+    const rep = { kind: 'week' as const, days: [2, 6] };
+    S.capture('Pflanzen giessen', { list: 'next', context: '@Zuhause', repeat: rep, due: nextOccurrence(rep, today(), true) });
+    // seit über 30 Tagen erledigt: liegt im Papierkorb (0.14)
+    S.capture('Sommerpneus montieren', { list: 'done', completed: Date.now() - 40 * 86_400_000, prevList: 'next' });
     S.capture('Antwort von Lisa zur Grillparty', { list: 'waiting', waitingFor: 'Lisa', tickler: d(-1) });
     S.capture('Kochkurs mit Anna?', { list: 'someday' });
     S.capture('WLAN-Passwort Ferienhaus', { list: 'reference', notes: 'Netz: Casa-Ticino' });
-    S.capture('Idee: Geschenk für Mama', {});
+    S.capture('Idee: Geschenk für Mama', { created: Date.now() - 9 * 86_400_000 }); // seit über 7 Tagen ungeklärt: rot (0.14)
     S.capture('Zeitschrift-Abo kündigen?', {});
     S.capture('Artikel über Wochendurchsicht lesen', {});
   });

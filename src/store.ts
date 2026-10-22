@@ -5,7 +5,7 @@ import * as db from './db';
 import { ENV, IS_TEST } from './env';
 import { decryptJSON, encryptJSON, type EncryptedFile } from './crypto';
 import type { EventType, GtdEvent, Item, ListName, Project, State } from './types';
-import { Q, orderForNew, reorderPatches } from './logic';
+import { Q, isAgedDone, isAgedProject, inClosedProject, nextOccurrence, orderForNew, reorderPatches, today, validRepeat } from './logic';
 
 /** Format der Ereignisse. Nur erhöhen, wenn alte Apps neue Ereignisse nicht mehr verstehen dürften. */
 export const EVENT_FORMAT = 1;
@@ -63,7 +63,7 @@ export function uid(): string {
 export function normalizeItem(d: Partial<Item> & { id: string }, ts: number): Item {
   return {
     title: '', notes: '', list: 'inbox', context: null, projectId: null, waitingFor: null,
-    tickler: null, due: null, completed: null, prevList: null, order: null, subtasks: [],
+    tickler: null, due: null, completed: null, prevList: null, order: null, subtasks: [], repeat: null, series: null,
     ...d,
     created: d.created ?? ts,
     updated: ts,
@@ -72,7 +72,7 @@ export function normalizeItem(d: Partial<Item> & { id: string }, ts: number): It
 
 export function normalizeProject(d: Partial<Project> & { id: string }, ts: number): Project {
   return {
-    title: '', outcome: '', status: 'active', due: null, completed: null, sequential: false, color: null,
+    title: '', outcome: '', status: 'active', due: null, completed: null, sequential: false, color: null, droppedAt: null,
     ...d,
     created: d.created ?? ts,
     updated: ts,
@@ -112,7 +112,9 @@ function applyUnsafe(e: GtdEvent, st: State) {
   if (!d || typeof d !== 'object') return;
   switch (e.type) {
     case 'item.create':
-      if (typeof d.id === 'string') {
+      // Schon vorhanden (0.14): zwei Geräte haben dieselbe Wiederholung angelegt (gleiche ID aus Serie + Datum).
+      // Die erste gilt, damit spätere Änderungen daran nicht durch ein zweites Anlegen verloren gehen.
+      if (typeof d.id === 'string' && !st.items.has(d.id)) {
         const it = normalizeItem(d, e.ts);
         if (inDeletedProject(it, st)) deleteWithProject(it); // Schritt zu einem schon gelöschten Projekt
         st.items.set(d.id, it);
@@ -216,10 +218,10 @@ export async function init() {
 // ---------- Aktionen ----------
 
 export function capture(title: string, extra: Partial<Item> = {}): string {
-  const id = uid();
+  const id = extra.id ?? uid();
   const item: Item = {
-    id, title: title.trim(), notes: '', list: 'inbox', context: null, projectId: null,
-    waitingFor: null, tickler: null, due: null, created: Date.now(), updated: Date.now(), completed: null, ...extra,
+    title: title.trim(), notes: '', list: 'inbox', context: null, projectId: null,
+    waitingFor: null, tickler: null, due: null, created: Date.now(), updated: Date.now(), completed: null, ...extra, id,
   };
   emit('item.create', item);
   return id;
@@ -230,10 +232,34 @@ export function patchItem(id: string, patch: Partial<Item>) {
   emit('item.patch', { id, patch });
 }
 
-export function completeItem(id: string) {
+/**
+ * Erledigen. Bei einer Wiederholung (0.14) entsteht die nächste: nächster Termin nach dem späteren von heute
+ * und der Frist (verspätet erledigt → nächster Termin nach heute). Feste ID aus Serie und Datum, damit zwei
+ * Geräte dieselbe Wiederholung nicht doppelt anlegen. Gibt die ID der neuen Wiederholung zurück.
+ */
+export function completeItem(id: string, opts: { noRepeat?: boolean } = {}): string | null {
   const it = state.items.get(id);
-  if (!it) return;
-  patchItem(id, { list: 'done', completed: Date.now(), prevList: it.list });
+  if (!it) return null;
+  let created: string | null = null;
+  const wasList = it.list;
+  batch(() => {
+    patchItem(id, { list: 'done', completed: Date.now(), prevList: it.list });
+    if (!opts.noRepeat && wasList === 'next' && validRepeat(it.repeat)) {
+      const t = today();
+      const from = it.due && it.due > t ? it.due : t;
+      const due = nextOccurrence(it.repeat, from);
+      const series = it.series ?? it.id;
+      const nid = `${series}~${due}`;
+      if (!state.items.has(nid)) {
+        capture(it.title, {
+          id: nid, list: 'next', context: it.context, projectId: it.projectId, notes: it.notes, due, repeat: it.repeat, series,
+          subtasks: (it.subtasks ?? []).filter((x) => !x.deleted).map((x) => ({ ...x, done: false })),
+        });
+        created = nid;
+      }
+    }
+  });
+  return created;
 }
 
 export function restoreItem(id: string) {
@@ -249,9 +275,14 @@ export function trashItem(id: string) {
   patchItem(id, { list: 'trash', prevList: it.list });
 }
 
+/** Papierkorb leeren: Weggeworfenes, seit über 30 Tagen Erledigtes und ebenso lange geschlossene Projekte samt Aufgaben (0.14) */
 export function emptyTrash() {
   batch(() => {
-    for (const it of state.items.values()) if (it.list === 'trash' && !it.deleted) patchItem(it.id, { deleted: true, title: '', notes: '', subtasks: [] });
+    for (const p of [...state.projects.values()]) if (isAgedProject(p)) deleteProject(p.id);
+    for (const it of state.items.values()) {
+      if (it.deleted || inClosedProject(it)) continue;
+      if (it.list === 'trash' || isAgedDone(it)) patchItem(it.id, { deleted: true, title: '', notes: '', subtasks: [] });
+    }
   });
 }
 
@@ -326,7 +357,7 @@ export function completeProject(pid: string, withOpen: boolean): { prev: Pick<Pr
   const completed: string[] = [];
   batch(() => {
     if (withOpen) {
-      for (const it of Q.openInProject(pid)) { completeItem(it.id); completed.push(it.id); }
+      for (const it of Q.openInProject(pid)) { completeItem(it.id, { noRepeat: true }); completed.push(it.id); }
     }
     patchProject(pid, { status: 'done', completed: Date.now() });
   });

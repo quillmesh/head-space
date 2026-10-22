@@ -1,13 +1,13 @@
-# Übergabe für eine neue Unterhaltung (Stand 18.10.2026)
+# Übergabe für eine neue Unterhaltung (Stand 22.10.2026)
 
 Zuerst `CLAUDE.md` lesen: Regeln, Ablauf, **erst fragen, dann umsetzen**.
 
 ## Stand
-- **Live** (`main`) und **Test** (`test`): Version **0.13.0**, freigegeben am 18.10.2026 (Commit `27ccd70`).
-  Enthält die Änderungswünsche 1–9 (Liste im Claude-Projekt „Kopf frei – Änderungswünsche“).
-- Echte Daten bis 0.13.0 eingefroren; das Einfrier-Skript erzeugt ab 0.13 auch „Geklärt“ und Klären mit Ziel-Kacheln.
-- Adresse: Die App wird unter `quillmesh.github.io/head-space/` veröffentlicht. Das iPad des Nutzers hatte am 14.10.
-  offenbar eine ältere Adresse offen (zeigte 0.12.0, obwohl 0.12.1 online war). Nutzer klärt das selbst.
+- **Live** (`main`): Version **0.13.0**, freigegeben am 18.10.2026 (Commit `27ccd70`), Änderungswünsche 1–9.
+- **Test** (`test`): Version **0.14.0**, wartet auf „freigeben“: Wünsche 10–12 (Inbox rot, Papierkorb nach 30 Tagen,
+  Wiederholungen). Liste im Claude-Projekt „Kopf frei – Änderungswünsche“.
+- Echte Daten bis 0.13.0 eingefroren.
+- Adresse: Die App wird unter `quillmesh.github.io/head-space/` veröffentlicht.
 
 ## Offene Punkte (vom Nutzer noch nicht freigegeben, nicht ohne OK umsetzen)
 1. **Falscher Update-Hinweis in der Live-App.** `build.mjs` setzt die Bau-Nummer (`__APP_BUILD__`, `VERSION` in `sw.js`) aus der Uhrzeit. Jeder Push auf `test` baut die ganze Website neu, also auch Live, und die Live-App meldet dann ein Update ohne Änderung. Vorschlag: Bau-Nummer aus dem Inhalt berechnen (Hash).
@@ -76,9 +76,22 @@ Zuerst `CLAUDE.md` lesen: Regeln, Ablauf, **erst fragen, dann umsetzen**.
   Datum von iPadOS (heute) stehen, mit Rückgängig.
 - **Projektliste (0.13):** Ergebnis vollständig als Text unter dem Projekt, ohne Box.
 
+- **Inbox rot (0.14, Variante C):** ab dem 8. Tag nach „erfasst am“ (bei „Wieder vorgelegt“ ab Vorlage-Tag) ganze Karte rot
+  hinterlegt, ohne weitere Angaben. Berechnet (`isStale` in `logic.ts`).
+- **Papierkorb nach 30 Tagen (0.14):** berechnet, nicht gespeichert (`isAgedDone`, `isAgedProject`). Erledigtes bzw. geschlossene
+  Projekte älter als 30 Tage erscheinen im Papierkorb; „Papierkorb leeren“ löscht sie (Projekte samt Aufgaben).
+- **Wiederholungen (0.14, Variante A + ↻):** nur „Nächster Schritt“, beim Klären und im Bearbeiten-Dialog. Wöchentlich (Mo–So),
+  monatlich (Tag X, 31 → letzter Tag), jährlich. Sichtbar 7 Tage bzw. 1 Monat vorher (sonst unter „Wiedervorlage“).
+  Erledigen legt die nächste an: nächster Termin nach dem späteren von heute und Frist; ID `<Serie>~<Datum>`.
+  Pro Serie nur die nächste offene sichtbar; verpasste bleiben überfällig stehen. Projekt abschliessen legt keine neue an.
+
 ## Neue optionale Datenfelder (seit 0.8)
 - `Item.order`: eigene Position im Projekt; `null` bedeutet „nach Frist sortieren“.
 - `Project.sequential`: seit 0.10 ohne Wirkung.
+- `Item.repeat` (0.14): Regel `{kind:'week',days}` / `{kind:'month',day}` / `{kind:'year',month,day}`, `null` = einmalig.
+- `Item.series` (0.14): ID der ersten Aufgabe der Serie (bei der ersten selbst `null`).
+- `Project.droppedAt` (0.14): Zeitpunkt des Verwerfens; fehlt bei älteren (dann `updated`).
+- Neue Regel beim Abspielen (0.14): `item.create` mit schon vorhandener ID wird ignoriert (zwei Geräte legen dieselbe Wiederholung an).
 - `Project.color` (0.12): Schlüssel aus `PROJECT_COLORS` (`logic.ts`), `null` = automatisch.
 - `Item.subtasks` (0.12): Liste `{ id, title, done, order, deleted? }`. Geändert nur über das neue Ereignis `item.sub`
   (`{ id, sid, patch }`), je Unteraufgabe einzeln, damit zwei Geräte sich nicht überschreiben. Ältere Versionen

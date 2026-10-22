@@ -110,3 +110,26 @@
 .inbox-btns { display: inline-flex; gap: var(--s2); flex: none; }
 /* Projektergebnis vollständig und ohne Box (Wunsch 8) */
 .proj-outcome { margin: 0.2rem 0 0; color: var(--muted); font-size: 0.875rem; line-height: 1.4; overflow-wrap: anywhere; }
+
+/* ---------- 0.14: Inbox rot ab Tag 8 (Variante C), Wiederholen (Variante A) ---------- */
+.rows .row.is-stale, .rows .row.is-stale .row-inner { background: var(--warn-soft); }
+.rows .row.is-stale { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); }
+.rep-ico { display: inline-flex; align-items: center; color: var(--muted); }
+.repeat-box { border: 1px solid var(--line); border-radius: 12px; padding: var(--s3); background: var(--paper); gap: var(--s3); }
+.repeat-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+.repeat-head .field-label { font-size: 0.9375rem; color: var(--ink); }
+.switch { width: 2.9rem; height: 1.75rem; border-radius: 999px; border: 0; background: var(--line); position: relative; cursor: pointer; flex: none; padding: 0; transition: background 0.15s; }
+.switch::after { content: ""; position: absolute; left: 3px; top: 3px; width: calc(1.75rem - 6px); height: calc(1.75rem - 6px); border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform 0.15s; }
+.switch[aria-checked="true"] { background: var(--ok); }
+.switch[aria-checked="true"]::after { transform: translateX(1.15rem); }
+.switch:focus-visible, .seg-btn:focus-visible, .wday:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.rep-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.seg-btn { border: 0; border-left: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 0.55rem 0.2rem; font-size: 0.875rem; cursor: pointer; min-height: 2.5rem; }
+.seg-btn:first-child { border-left: 0; }
+.seg-btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); font-weight: 600; }
+.wdays { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.3rem; }
+.wday { aspect-ratio: 1; max-width: 100%; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-weight: 600; font-size: 0.8125rem; cursor: pointer; padding: 0; }
+.wday[aria-pressed="true"] { background: var(--folder-soft); border-color: var(--folder); color: var(--folder-ink); }
+.repeat-inline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); font-size: 0.9375rem; }
+.repeat-inline select { width: auto; }
+.repeat-sum { margin: 0; font-size: 0.8125rem; color: var(--muted); }

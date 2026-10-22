@@ -165,3 +165,16 @@ test.describe('Projektliste (0.13)', () => {
     await expect(e).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   });
 });
+
+test.describe('Inbox rot ab dem 8. Tag (0.14)', () => {
+  test.use(HANDY);
+  test('Variante C: ganze Karte rot hinterlegt, ohne weitere Angaben; jüngere normal', async ({ page }) => {
+    await gehe(page, 'test/#inbox');
+    const alt = karte(page, 'Geschenk für Mama');
+    await expect(alt).toHaveClass(/is-stale/);
+    await expect(alt.locator('.row-inner')).toHaveCSS('background-color', 'rgb(249, 223, 214)');
+    await expect(alt, 'keine Zahl, kein „seit x Tagen“').not.toContainText(/Tag/);
+    await expect(page.locator('.callout'), 'oben keine Angabe').not.toContainText(/7 Tag/);
+    await expect(karte(page, 'Zeitschrift')).not.toHaveClass(/is-stale/);
+  });
+});

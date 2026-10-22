@@ -13,6 +13,8 @@
    "prevList": null,
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "i1",
    "created": 1759300000000
   },
@@ -29,6 +31,8 @@
    "prevList": null,
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "i2",
    "energie": "hoch",
    "created": 1759300000003
@@ -43,6 +47,7 @@
    "completed": null,
    "sequential": false,
    "color": null,
+   "droppedAt": null,
    "id": "p1",
    "created": 1759300000000
   }

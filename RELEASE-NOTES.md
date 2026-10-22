@@ -4,6 +4,11 @@ Für jede Version die Änderungen, neueste zuoberst. Die App zeigt nach einem Up
 der neuen Versionen einmal als Fenster „Was ist neu“. Format: `## <Version>`, darunter Punkte mit `- `.
 **Fett** ist erlaubt. Alles andere wird nicht angezeigt.
 
+## 0.14.0
+- **Wiederkehrende Aufgaben:** Beim Klären unter „Nächster Schritt“ (und im Bearbeiten-Dialog) „Wiederholen“ einschalten: wöchentlich an Wochentagen, monatlich am Tag X oder jährlich. Erledigst du sie, kommt die nächste; ↻ auf der Karte zeigt die Wiederholung.
+- **Inbox:** Was seit mehr als 7 Tagen ungeklärt ist, ist rot hinterlegt.
+- **Papierkorb:** Was seit über 30 Tagen erledigt ist (auch abgeschlossene Projekte), liegt automatisch im Papierkorb und lässt sich zurückholen.
+
 ## 0.13.0
 - **Klären geht schneller:** Nach „Ist das umsetzbar?“ wählst du auf einem Blatt das Ziel: Erledigt, Nächster Schritt, Delegieren oder Projekt. Es erscheinen nur die Felder, die dazu gehören, den Kontext tippst du als Symbol an.
 - **„Geklärt“ in der Inbox:** für Kurzes, das sich schon erledigt hat oder weg kann: „Schon erledigt“ oder „Löschen“, mit Rückgängig.

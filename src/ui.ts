@@ -12,8 +12,8 @@ declare const __APP_VERSION__: string;
 declare const __APP_BUILD__: string;
 export const APP_VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev';
 const APP_BUILD = typeof __APP_BUILD__ === 'string' ? __APP_BUILD__ : '';
-import type { Item, ListName, Project } from './types';
-import { changedFields, restorePoints, Q, addDays, all, colorKeyOf, daysSince, dueState, esc, fmtDate, fmtTs, inClosedProject, initials, isOpen, orderConflicts, project, projColor, PROJECT_COLORS, subtasksOf, today, toClarify, usedColorKeys, type DueState } from './logic';
+import type { Item, ListName, Project, Repeat } from './types';
+import { changedFields, restorePoints, Q, addDays, all, colorKeyOf, isStale, nextOccurrence, repeatText, validRepeat, weekday, WEEKDAYS, daysSince, dueState, esc, fmtDate, fmtTs, inClosedProject, initials, isOpen, orderConflicts, project, projColor, PROJECT_COLORS, subtasksOf, today, toClarify, usedColorKeys, type DueState } from './logic';
 import { lastSeenVersion, notesSince, parseNotes, type ReleaseNote } from './notes';
 import NOTES_MD from '../RELEASE-NOTES.md' with { type: 'text' };
 import { ctxBadge, ctxIcon, ctxLabel, ctxWithName, itemSymbol, noneBadge, waitBadge } from './icons';
@@ -140,6 +140,7 @@ const BELL_SVG = `<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="t
 const MOON_SVG = `<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M9.8 2.6a5.6 5.6 0 1 0 3.6 8.6 4.6 4.6 0 0 1-3.6-8.6z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M11 2.2h2.6L11 5h2.6" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const NOTE_SVG = `<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M3.5 2.5h6l3 3v8h-9zM9.5 2.5v3h3M5.5 8.5h5M5.5 11h3.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 const WARN_SVG = `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10.3 3.9L2.4 17.6A2 2 0 0 0 4.1 20.6h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" fill="currentColor"/><path d="M12 9v4.6" stroke="var(--surface)" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.25" fill="var(--surface)"/></svg>`;
+const REPEAT_SVG = `<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M12.5 6A5 5 0 0 0 3.3 5M3.5 10a5 5 0 0 0 9.2 1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 2.5v2.8h2.8M13 13.5v-2.8h-2.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const GRIP_SVG = `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><g fill="currentColor"><circle cx="5.5" cy="3.5" r="1.3"/><circle cx="10.5" cy="3.5" r="1.3"/><circle cx="5.5" cy="8" r="1.3"/><circle cx="10.5" cy="8" r="1.3"/><circle cx="5.5" cy="12.5" r="1.3"/><circle cx="10.5" cy="12.5" r="1.3"/></g></svg>`;
 
 /**
@@ -183,6 +184,7 @@ function meta(it: Item, opts: { project?: boolean; list?: boolean; clarify?: boo
   if (p && opts.project !== false) rest.push(`<span class="chip proj"><i class="pdot" aria-hidden="true"></i>${esc(p.title)}</span>`);
   if (it.waitingFor) rest.push(`<span class="chip wait-chip">wartet auf ${esc(it.waitingFor)}</span>`);
   if (opts.list && it.list !== 'next') rest.push(`<span class="chip">${LIST_LABEL[it.list]}</span>`);
+  if (it.repeat && isOpen(it)) rest.push(`<span class="rep-ico" title="Wiederholt sich: ${esc(repeatText(it.repeat))}">${REPEAT_SVG}<span class="sr-only">Wiederholt sich: ${esc(repeatText(it.repeat))}</span></span>`);
   if (it.notes && it.list !== 'reference') rest.push(`<span class="chip note-chip" title="Hat Notizen">Notiz</span><span class="note-ico" title="Hat Notizen" aria-hidden="true">${NOTE_SVG}</span>`);
   if (!due && !ctx && !rem && !rest.length) return '';
   return `<div class="row-meta">
@@ -210,7 +212,7 @@ function row(it: Item, opts: RowOpts = {}): string {
       ? `<button class="check is-done" data-action="restore" data-id="${it.id}" aria-label="Wiederherstellen" title="Wiederherstellen"></button>`
       : '';
   const p = opts.project !== false ? project(it.projectId) : undefined;
-  return card(`row ${projColor(p?.id)}${opts.restore ? ' is-done' : ''}`, it.id, 'item', `
+  return card(`row ${projColor(p?.id)}${opts.restore ? ' is-done' : ''}${opts.clarify && isStale(it) ? ' is-stale' : ''}`, it.id, 'item', `
     ${lead}
     <span class="row-badge" aria-hidden="true">${p ? esc(initials(p.title)) : ''}</span>
     <div class="row-main" data-action="edit" data-id="${it.id}">
@@ -460,6 +462,7 @@ function viewDone(): string {
   const shown = its.slice(0, 100);
   const doneP = Q.closedProjects('done');
   const dropped = Q.closedProjects('dropped');
+  const oldP = Q.trashedProjects();
   // Abgeschlossene Projekte als eine Karte (0.12); ein Klick zeigt die Aufgaben in der Projektansicht
   const pcard = (p: Project, label: string) => {
     const n = all().filter((i) => i.projectId === p.id).length;
@@ -476,10 +479,12 @@ function viewDone(): string {
     ${its.length ? list(shown, { restore: true }) : anyProjects ? '' : empty('Noch nichts erledigt.', 'Abgehakte Schritte sammeln sich hier.')}
     ${its.length > shown.length ? `<p class="hint">Die letzten ${shown.length} von ${its.length} werden angezeigt.</p>` : ''}
     ${dropped.length ? `<h2 class="section">Verworfene Projekte <span class="num">${dropped.length}</span></h2><ul class="rows">${dropped.map((p) => pcard(p, 'verworfen')).join('')}</ul>` : ''}
-    ${trash.length ? `<h2 class="section">Papierkorb <span class="num">${trash.length}</span></h2>
-      <ul class="rows">${trash.map((i) => card('row is-done', i.id, 'item', `
+    ${trash.length || oldP.length ? `<h2 class="section">Papierkorb <span class="num">${trash.length + oldP.length}</span></h2>
+      ${oldP.length ? `<ul class="rows">${oldP.map((p) => pcard(p, p.status === 'done' ? 'abgeschlossen' : 'verworfen')).join('')}</ul>` : ''}
+      ${trash.length ? `<ul class="rows">${trash.map((i) => card('row is-done', i.id, 'item', `
         <div class="row-main" data-action="edit" data-id="${i.id}"><button type="button" class="row-title" data-action="edit" data-id="${i.id}">${esc(i.title)}</button></div>
-        <button class="btn small" data-action="restore" data-id="${i.id}">Zurückholen</button>`, false)).join('')}</ul>
+        <button class="btn small" data-action="restore" data-id="${i.id}">Zurückholen</button>`, false)).join('')}</ul>` : ''}
+      <p class="hint">Was seit über 30 Tagen erledigt ist, liegt automatisch hier.</p>
       <div class="actions-row"><button class="btn danger" data-action="empty-trash">Papierkorb leeren</button></div>` : ''}`;
 }
 
@@ -732,6 +737,49 @@ function renderModal() {
   first?.focus();
 }
 
+/**
+ * „Wiederholen“ (0.14, Variante A): Schalter, Reiter Wöchentlich/Monatlich/Jährlich, Wochentage zum Antippen.
+ * Die Regel steht als JSON im versteckten Feld „repeat“ (leer = nicht wiederholen).
+ */
+function repeatBox(rule: Repeat | null, base: string): string {
+  return `<div class="field repeat-box" data-repeat-box data-base="${base}">${repeatInner(rule)}</div>`;
+}
+function repeatInner(rule: Repeat | null): string {
+  const on = !!rule;
+  const seg = (k: Repeat['kind'], label: string) => `<button type="button" class="seg-btn" data-action="repeat-kind" data-kind="${k}" aria-pressed="${rule?.kind === k}">${label}</button>`;
+  const days = (sel: number, id: string, field: string) => `<select id="${id}" data-repeat-field="${field}">${Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}"${sel === i + 1 ? ' selected' : ''}>${i + 1}.</option>`).join('')}</select>`;
+  let body = '';
+  if (rule?.kind === 'week') body = `<div class="wdays" role="group" aria-label="Wochentage">${WEEKDAYS.map((d, i) =>
+    `<button type="button" class="wday" data-action="repeat-day" data-day="${i}" aria-pressed="${rule.days.includes(i)}">${d}</button>`).join('')}</div>`;
+  if (rule?.kind === 'month') body = `<div class="repeat-inline"><label for="rep-day">Jeden Monat am</label>${days(rule.day, 'rep-day', 'day')}</div>`;
+  if (rule?.kind === 'year') body = `<div class="repeat-inline"><label for="rep-yday">Jedes Jahr am</label>${days(rule.day, 'rep-yday', 'day')}
+    <label class="sr-only" for="rep-month">Monat</label><select id="rep-month" data-repeat-field="month">${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}"${rule.month === i + 1 ? ' selected' : ''}>${new Date(2000, i, 1).toLocaleDateString('de-CH', { month: 'long' })}</option>`).join('')}</select></div>`;
+  const sum = rule ? (validRepeat(rule) ? `${esc(repeatText(rule))} · sichtbar ${rule.kind === 'week' ? '7 Tage' : '1 Monat'} vorher` : 'Wähl mindestens einen Wochentag.') : '';
+  return `<input type="hidden" name="repeat" value="${esc(rule ? JSON.stringify(rule) : '')}">
+    <div class="repeat-head"><span class="field-label" id="rep-label">Wiederholen</span>
+      <button type="button" class="switch" role="switch" aria-checked="${on}" aria-labelledby="rep-label" data-action="repeat-toggle"></button></div>
+    ${on ? `<div class="rep-seg" role="group" aria-label="Wie oft">${seg('week', 'Wöchentlich')}${seg('month', 'Monatlich')}${seg('year', 'Jährlich')}</div>${body}<p class="repeat-sum">${sum}</p>` : ''}`;
+}
+function readRepeat(box: Element): Repeat | null {
+  const v = box.querySelector<HTMLInputElement>('input[name=repeat]')?.value;
+  try { return v ? JSON.parse(v) as Repeat : null; } catch { return null; }
+}
+function setRepeat(box: HTMLElement, rule: Repeat | null) { box.innerHTML = repeatInner(rule); }
+function defaultRepeat(kind: Repeat['kind'], base: string): Repeat {
+  const d = new Date(base + 'T00:00:00');
+  if (kind === 'week') return { kind, days: [weekday(base)] };
+  if (kind === 'month') return { kind, day: d.getDate() };
+  return { kind, month: d.getMonth() + 1, day: d.getDate() };
+}
+/** Regel aus dem Formular; „bad“, wenn eingeschaltet, aber unvollständig (keine Wochentage) */
+function formRepeat(form: HTMLFormElement): Repeat | null | 'bad' {
+  const box = form.querySelector('[data-repeat-box]');
+  if (!box) return null;
+  const r = readRepeat(box);
+  if (!r) return null;
+  return validRepeat(r) ? r : 'bad';
+}
+
 /** Kontext als Symbole zum Antippen (Klären, 0.13); Wert im versteckten Feld „context“ */
 function ctxChips(selected: string | null): string {
   return `<div class="field"><span class="field-label">Kontext</span>
@@ -791,7 +839,8 @@ function clarifyHtml(m: Extract<Modal, { kind: 'clarify' }>): string {
     if (g === 'done') more = '<p class="hint">Unter zwei Minuten: gleich erledigen, dann hier bestätigen.</p>';
     if (g === 'next') more = `${ctxChips(m.ctx ?? it.context ?? null)}
       <div class="grid2">${dateField('n-due', 'due', 'Fällig am (optional)', it.due ?? '')}${dateField('n-tickler', 'tickler', 'Erst ab (optional)')}</div>
-      <div class="field"><label for="n-proj">Gehört zu Projekt</label><select id="n-proj" name="projectId">${projectOptions(it.projectId)}</select></div>`;
+      <div class="field"><label for="n-proj">Gehört zu Projekt</label><select id="n-proj" name="projectId">${projectOptions(it.projectId)}</select></div>
+      ${repeatBox(it.repeat ?? null, it.due ?? today())}`;
     if (g === 'deleg') more = `<div class="field"><label for="d-who">An wen?</label><input id="d-who" name="who" placeholder="Name" required></div>
       <div class="grid2">${dateField('d-due', 'due', 'Fällig am (optional)', it.due ?? '')}${dateField('d-date', 'tickler', 'Nachfassen am (optional)')}</div>`;
     if (g === 'proj') more = `<div class="field"><label for="p-outcome">Gewünschtes Ergebnis</label><input id="p-outcome" name="outcome" placeholder="Woran erkennst du, dass es fertig ist?"></div>
@@ -989,6 +1038,7 @@ function editHtml(id: string): string {
         <div class="field"><label for="e-due" class="label-ico">${FLAG_SVG}Fällig am</label><input id="e-due" name="due" type="date" value="${it.due ?? ''}"></div>
         <div class="field"><label for="e-tickler" class="label-ico">${it.list === 'waiting' ? `${BELL_SVG}Nachfassen am` : `${MOON_SVG}Erst ab`}</label><input id="e-tickler" name="tickler" type="date" value="${it.tickler ?? ''}"></div>
       </div>
+      ${it.list === 'next' ? repeatBox(it.repeat ?? null, it.due ?? today()) : ''}
       <p class="hint">${it.list === 'waiting'
         ? '„Fällig am“ ist die Frist. „Nachfassen am“ erinnert dich, bei der Person nachzufragen.'
         : '„Fällig am“ ist die Frist. „Erst ab“ blendet den Eintrag bis zu diesem Tag aus.'}</p>
@@ -1638,7 +1688,7 @@ function onClick(e: MouseEvent) {
       break;
     }
     case 'empty-trash':
-      modal = { kind: 'confirm', text: 'Papierkorb endgültig leeren? Die Einträge sind danach nicht mehr lesbar.', label: 'Endgültig leeren', run: () => { S.emptyTrash(); toast('Papierkorb geleert.'); } };
+      modal = { kind: 'confirm', text: `Papierkorb endgültig leeren?${Q.trashedProjects().length ? ' Projekte darin werden samt ihren Aufgaben gelöscht.' : ''} Die Einträge sind danach nicht mehr lesbar.`, label: 'Endgültig leeren', run: () => { S.emptyTrash(); toast('Papierkorb geleert.'); } };
       renderModal();
       break;
     case 'confirm': if (modal?.kind === 'confirm') { const run = modal.run; modal = null; renderModal(); run(); } break;
@@ -1713,6 +1763,18 @@ function onClick(e: MouseEvent) {
       break;
     }
     case 'quick-done': modal = { kind: 'quick', id }; renderModal(); break;
+    case 'repeat-toggle': case 'repeat-kind': case 'repeat-day': {
+      const box = el.closest<HTMLElement>('[data-repeat-box]');
+      if (!box) break;
+      const base = box.dataset.base ?? today();
+      let r = readRepeat(box);
+      if (a === 'repeat-toggle') r = r ? null : defaultRepeat('week', base);
+      else if (a === 'repeat-kind') r = r?.kind === el.dataset.kind ? r : defaultRepeat(el.dataset.kind as Repeat['kind'], base);
+      else if (r?.kind === 'week') { const d = Number(el.dataset.day); r = { kind: 'week', days: r.days.includes(d) ? r.days.filter((x) => x !== d) : [...r.days, d].sort() }; }
+      setRepeat(box, r);
+      box.querySelector<HTMLElement>(`[data-action="${a}"]${a === 'repeat-day' ? `[data-day="${el.dataset.day}"]` : a === 'repeat-kind' ? `[data-kind="${el.dataset.kind}"]` : ''}`)?.focus();
+      break;
+    }
     case 'quick-go': {
       const it = S.state.items.get(id);
       modal = null; renderModal();
@@ -1728,7 +1790,7 @@ function onClick(e: MouseEvent) {
       const pr = project(id);
       if (!pr) break;
       const prev = { status: pr.status, completed: pr.completed };
-      S.patchProject(id, { status, completed: status === 'done' ? Date.now() : null });
+      S.patchProject(id, { status, completed: status === 'done' ? Date.now() : null, ...(status === 'dropped' ? { droppedAt: Date.now() } : {}) });
       modal = null; renderModal();
       const msg: Record<Project['status'], string> = { active: 'Projekt aktiviert.', someday: 'Auf Irgendwann/Vielleicht verschoben.', done: 'Projekt abgeschlossen.', dropped: 'Projekt verworfen.' };
       showUndo(msg[status], () => { S.patchProject(id, prev); flash(id); });
@@ -1794,7 +1856,13 @@ async function onSubmit(e: SubmitEvent) {
       if (modal?.kind !== 'clarify' || !modal.goal) return;
       const g = modal.goal;
       if (g === 'done') finishClarify({ list: 'done', completed: Date.now(), prevList: 'next', tickler: null }, 'Erledigt. Gut gemacht.');
-      else if (g === 'next') finishClarify({ list: 'next', context: val(form, 'context') || null, projectId: val(form, 'projectId') || null, tickler: val(form, 'tickler') || null, due: val(form, 'due') || null }, 'Als nächsten Schritt abgelegt.');
+      else if (g === 'next') {
+        const r = formRepeat(form);
+        if (r === 'bad') { toast('Wähl mindestens einen Wochentag.', 'error'); return; }
+        // Wiederholung (0.14): erste Frist = erster Termin ab dem gewählten Datum bzw. ab heute
+        const due = r ? nextOccurrence(r, val(form, 'due') || today(), true) : val(form, 'due') || null;
+        finishClarify({ list: 'next', context: val(form, 'context') || null, projectId: val(form, 'projectId') || null, tickler: val(form, 'tickler') || null, due, repeat: r }, r ? `Wiederholt sich: ${repeatText(r)}.` : 'Als nächsten Schritt abgelegt.');
+      }
       else if (g === 'deleg') finishClarify({ list: 'waiting', waitingFor: val(form, 'who'), tickler: val(form, 'tickler') || null, due: val(form, 'due') || null }, 'Zu „Warten auf“ hinzugefügt.');
       else {
         // Projekt: Name = Titel der Notiz, die Notiz selbst wird zum ersten Schritt
@@ -1872,11 +1940,17 @@ async function onSubmit(e: SubmitEvent) {
       const it = S.state.items.get(id);
       if (!it) return;
       const list = val(form, 'list') as ListName;
+      const r = formRepeat(form);
+      if (r === 'bad') { toast('Wähl mindestens einen Wochentag.', 'error'); return; }
+      const ruleChanged = !!form.querySelector('[data-repeat-box]') && JSON.stringify(r) !== JSON.stringify(it.repeat ?? null);
+      let due = val(form, 'due') || null;
+      if (r && ruleChanged) due = nextOccurrence(r, due ?? today(), true); // neue Regel: Frist auf den nächsten Termin
       // nur speichern, was sich geändert hat (Sync: andere Geräte können inzwischen anderes geändert haben)
       const patch: Partial<Item> = changedFields(it, {
         title: val(form, 'title'), notes: (new FormData(form).get('notes') as string ?? '').trim(), list,
         context: val(form, 'context') || null, projectId: val(form, 'projectId') || null,
-        waitingFor: val(form, 'waitingFor') || null, tickler: val(form, 'tickler') || null, due: val(form, 'due') || null,
+        waitingFor: val(form, 'waitingFor') || null, tickler: val(form, 'tickler') || null, due,
+        ...(ruleChanged ? { repeat: r } : {}),
       });
       // Unteraufgaben (0.12): neue anlegen, geänderte Titel und entfernte speichern. Abhaken ist schon gespeichert.
       const subOps: (() => void)[] = [];
@@ -1989,6 +2063,12 @@ function showStepDue(input: HTMLInputElement) {
 
 function onChange(e: Event) {
   const el = e.target as HTMLInputElement;
+  if (el.dataset.repeatField) {
+    const box = el.closest<HTMLElement>('[data-repeat-box]');
+    const r = box && readRepeat(box);
+    if (box && r && r.kind !== 'week') { setRepeat(box, { ...r, [el.dataset.repeatField]: Number(el.value) } as Repeat); box.querySelector<HTMLElement>(`#${el.id}`)?.focus(); }
+    return;
+  }
   // iPad/iPhone melden „change“ schon beim Öffnen (heute vorausgewählt) und bei jedem Drehen am Rad. Solange das
   // Feld den Fokus hat, ist die Auswahl offen: erst beim Verlassen speichern, sonst schliesst das Neuzeichnen sie.
   if (el.classList.contains('due-input')) { takeDue(el, false); return; }

@@ -18,7 +18,7 @@ Oberste Priorität bleibt die **Datenkonsistenz zwischen Geräten**.
 
 ### Zufallstests für den Sync (property-based)
 Statt einzelner Fälle erzeugt der Test viele zufällige Abläufe (erfassen, ändern, erledigen, Papierkorb, leeren,
-Projekte, ziehen, löschen, Unteraufgaben, Projektfarbe, Projekt abschliessen und Aufgabe zurückholen; Abgleich zu zufälligen Zeitpunkten; Uhr von Gerät B bis ±10 min falsch) und prüft Regeln,
+Projekte, ziehen, löschen, Unteraufgaben, Projektfarbe, Projekt abschliessen und Aufgabe zurückholen, Wiederholungen (beide Geräte legen dieselbe nächste an); Abgleich zu zufälligen Zeitpunkten; Uhr von Gerät B bis ±10 min falsch) und prüft Regeln,
 die immer gelten müssen: beide Geräte gleich, Reihenfolge des Eintreffens egal, Abgleich idempotent, endgültig
 Gelöschtes bleibt leer, keine offene Aufgabe in einem gelöschten Projekt (verwaister Schritt, Entscheid 0.11). Bei einem Fehler wird der Ablauf automatisch auf die wenigsten Schritte verkleinert
 („Shrinking“) und mit Startwert ausgegeben: `SYNC_SEED=<Zahl> bun test tests/unit/sync-zufall.test.ts`.
@@ -50,10 +50,11 @@ absichtlich, `ALTE_DATEN_EINFRIEREN=1 bun test tests/unit/alte-daten.test.ts` un
 | `erledigen-rueckgaengig` | Erledigen, Rückgängig-Leiste, „Nächster Schritt“, Projekteintrag übernehmen |
 | `fristen-kalender` | Fahne in der Karte, Ersatzdialog, nur „input“ (iPad), Rad-Auswahl, iPad/iPhone mit wirkungslosem `showPicker()` (WebKit-Fehler): Finger trifft das Datumsfeld, kein Dialog dazu, Auswahl bleibt offen bis zum Schliessen (0.13) |
 | `projekte` | Schritt mit Frist, Ziehen mit dem Finger, Warndreieck, Pfeiltasten, Wischen vs. Griff, Projektfarbe zeigen und wählen, Abschliessen mit Rückfrage, „Erledigt“ mit Projekt-Karte, Zurückholen |
+| `wiederholen` | Wiederholen beim Klären (Wochentage, Satz, erste Frist, ↻), erledigen legt die nächste an (nur eine sichtbar), ändern/beenden im Dialog, ohne Wochentag nicht speicherbar |
 | `unteraufgaben` | Unteraufgaben einschalten, „+“, sofort abhaken (bleibt sichtbar), entfernen, umbenennen |
 | `neuerungen` | „Was ist neu“: neues Gerät ohne Fenster, nach Update einmal |
-| `loeschen-papierkorb` | Wischen, Rückgängig, Papierkorb leeren, Projekt löschen |
-| `darstellung` | Farben, Grössen, „auf einer Linie“, kompakte Handy-Karten, Dialog-Felder, Hell/Dunkel, Kontext-Symbole (Zug, Unterwegs, Einkaufen), Filterleiste ohne Querscrollen, Projektergebnis vollständig ohne Box |
+| `loeschen-papierkorb` | Wischen, Rückgängig, Papierkorb leeren, Projekt löschen, nach 30 Tagen berechnet im Papierkorb (auch Projekte) |
+| `darstellung` | Farben, Grössen, „auf einer Linie“, kompakte Handy-Karten, Dialog-Felder, Hell/Dunkel, Kontext-Symbole (Zug, Unterwegs, Einkaufen), Filterleiste ohne Querscrollen, Projektergebnis vollständig ohne Box, Inbox rot ab Tag 8 (Variante C) |
 | `sync` | alte Datenbank v1, Einrichten, zwei Geräte, verschlüsselt, Löschen über zwei Geräte, verwaister Schritt |
 | `update-offline` | Service Worker, Update-Hinweis, veralteter Zwischenspeicher, App reparieren (eigener Server) |
 | `umgebungen` | Live und Test getrennt (Daten, Einstellungen, Service Worker, Caches, Backup) |

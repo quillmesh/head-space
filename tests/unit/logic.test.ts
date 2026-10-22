@@ -249,3 +249,114 @@ describe('Datumsfeld direkt antippen (iPad/iPhone)', () => {
     expect(L.needsDirectDateTap(undefined, undefined)).toBe(false);
   });
 });
+
+describe('Inbox rot ab dem 8. Tag (0.14)', () => {
+  const vor = (n: number) => Date.now() - n * 86_400_000;
+  test('erfasst vor 6 oder 7 Tagen: nicht rot; vor 7 Tagen und mehr am 8. Tag: rot', () => {
+    // „ab dem 8. Tag“: erfasst am Tag 1, am Tag 8 (7 Tage später) rot
+    expect(L.isStale(S.state.items.get(S.capture('a', { created: vor(6) }))!)).toBe(false);
+    expect(L.isStale(S.state.items.get(S.capture('b', { created: vor(7) }))!)).toBe(true);
+    expect(L.isStale(S.state.items.get(S.capture('c', { created: vor(30) }))!)).toBe(true);
+    expect(L.isStale(S.state.items.get(S.capture('d'))!)).toBe(false);
+  });
+  test('nur in der Inbox; „Wieder vorgelegt“ zählt ab dem Vorlage-Tag', () => {
+    expect(L.isStale(S.state.items.get(S.capture('n', { list: 'next', created: vor(30) }))!)).toBe(false);
+    expect(L.isStale(S.state.items.get(S.capture('w1', { list: 'someday', tickler: d(-3), created: vor(60) }))!)).toBe(false);
+    expect(L.isStale(S.state.items.get(S.capture('w2', { list: 'someday', tickler: d(-7), created: vor(60) }))!)).toBe(true);
+    expect(L.isStale(S.state.items.get(S.capture('w3', { list: 'someday', tickler: d(5), created: vor(60) }))!)).toBe(false);
+  });
+});
+
+describe('Nach 30 Tagen von „Erledigt“ in den Papierkorb (0.14, berechnet)', () => {
+  const vor = (n: number) => Date.now() - n * 86_400_000;
+  test('Aufgaben: bis 30 Tage unter Erledigt, danach im Papierkorb; nichts wird gespeichert', () => {
+    const a = S.capture('neu erledigt', { list: 'done', completed: vor(30) });
+    const b = S.capture('alt erledigt', { list: 'done', completed: vor(31), prevList: 'next' });
+    const n = S.info.eventCount;
+    expect(L.Q.done().map((i) => i.id)).toEqual([a]);
+    expect(L.Q.trash().map((i) => i.id)).toEqual([b]);
+    expect(S.info.eventCount, 'keine neuen Ereignisse').toBe(n);
+    S.restoreItem(b);
+    expect(S.state.items.get(b)).toMatchObject({ list: 'next', completed: null });
+    expect(L.Q.trash()).toEqual([]);
+  });
+  test('Projekte: abgeschlossen oder verworfen vor über 30 Tagen → Papierkorb; Leeren löscht samt Aufgaben', () => {
+    const p = S.createProject({ title: 'alt' });
+    const t = S.capture('Schritt', { list: 'done', projectId: p, completed: vor(40) });
+    S.patchProject(p, { status: 'done', completed: vor(35) });
+    const q = S.createProject({ title: 'verworfen' });
+    S.patchProject(q, { status: 'dropped', droppedAt: vor(10) });
+    expect(L.Q.trashedProjects().map((x) => x.title)).toEqual(['alt']);
+    expect(L.Q.closedProjects('done')).toEqual([]);
+    expect(L.Q.closedProjects('dropped').map((x) => x.title)).toEqual(['verworfen']);
+    expect(L.Q.trash(), 'Aufgaben geschlossener Projekte nicht einzeln').toEqual([]);
+    const loose = S.capture('weg', { list: 'done', completed: vor(50) });
+    S.emptyTrash();
+    expect(S.state.projects.get(p)!.deleted).toBe(true);
+    expect(S.state.items.get(t)).toMatchObject({ deleted: true, title: '' });
+    expect(S.state.items.get(loose)!.deleted).toBe(true);
+    expect(S.state.projects.get(q)!.deleted ?? false).toBe(false);
+  });
+  test('verworfen ohne Zeitpunkt (ältere Versionen): letzte Änderung zählt', () => {
+    const q = S.createProject({ title: 'alt verworfen' });
+    S.patchProject(q, { status: 'dropped' });
+    expect(L.closedAt(S.state.projects.get(q)!)).toBe(S.state.projects.get(q)!.updated);
+  });
+});
+
+describe('Wiederholungen (0.14)', () => {
+  const W = (...days: number[]) => ({ kind: 'week' as const, days });
+  test('wöchentlich: nächster passender Wochentag; inklusive für den ersten Termin', () => {
+    // 2026-10-19 ist ein Montag
+    expect(L.weekday('2026-10-19')).toBe(0);
+    expect(L.nextOccurrence(W(0, 2, 4), '2026-10-19')).toBe('2026-10-21');
+    expect(L.nextOccurrence(W(0, 2, 4), '2026-10-19', true)).toBe('2026-10-19');
+    expect(L.nextOccurrence(W(0), '2026-10-19')).toBe('2026-10-26');
+    expect(L.nextOccurrence(W(6), '2026-10-24')).toBe('2026-10-25');
+  });
+  test('monatlich: Tag 31 im kurzen Monat = letzter Tag; über den Jahreswechsel', () => {
+    expect(L.nextOccurrence({ kind: 'month', day: 31 }, '2026-02-10')).toBe('2026-02-28');
+    expect(L.nextOccurrence({ kind: 'month', day: 15 }, '2026-12-20')).toBe('2027-01-15');
+    expect(L.nextOccurrence({ kind: 'month', day: 15 }, '2026-12-15', true)).toBe('2026-12-15');
+  });
+  test('jährlich: selber Tag; 29. Februar in anderen Jahren am 28.', () => {
+    expect(L.nextOccurrence({ kind: 'year', month: 10, day: 22 }, '2026-10-22')).toBe('2027-10-22');
+    expect(L.nextOccurrence({ kind: 'year', month: 2, day: 29 }, '2026-03-01')).toBe('2027-02-28');
+  });
+  test('sichtbar: wöchentlich 7 Tage, monatlich und jährlich 1 Monat vorher', () => {
+    const w = S.state.items.get(S.capture('w', { list: 'next', repeat: W(0), due: d(8) }))!;
+    expect(L.notYetVisible(w)).toBe(true);
+    const w2 = S.state.items.get(S.capture('w2', { list: 'next', repeat: W(0), due: d(7) }))!;
+    expect(L.notYetVisible(w2)).toBe(false);
+    expect(L.visibleFrom({ repeat: { kind: 'year', month: 3, day: 31 }, due: '2027-03-31' } as any)).toBe('2027-02-28');
+    expect(L.Q.next().map((i) => i.title)).toEqual(['w2']);
+    expect(L.Q.tickler().map((i) => i.title), 'noch nicht sichtbare unter Wiedervorlage').toEqual(['w']);
+  });
+  test('erledigen legt die nächste an (gleiche Serie, feste ID); verspätet: nächster Termin nach heute', () => {
+    const id = S.capture('Pflanzen giessen', { list: 'next', repeat: W(0, 1, 2, 3, 4, 5, 6), due: d(-3), context: '@Zuhause' });
+    const n = S.completeItem(id)!;
+    expect(n).toBe(`${id}~${d(1)}`);
+    expect(S.state.items.get(n)).toMatchObject({ list: 'next', due: d(1), series: id, context: '@Zuhause', title: 'Pflanzen giessen' });
+    const m = S.completeItem(n)!;
+    expect(S.state.items.get(m)!.due, 'früh erledigt: nach der Frist').toBe(d(2));
+  });
+  test('pro Serie nur die nächste offene; Projekt abschliessen legt keine neue an', () => {
+    const id = S.capture('A', { list: 'next', repeat: W(0, 1, 2, 3, 4, 5, 6), due: d(0) });
+    const n = S.completeItem(id)!;
+    S.restoreItem(id); // zurückgeholt: zwei offene in der Serie
+    expect(L.Q.next().filter((i) => i.title === 'A').map((i) => i.id)).toEqual([id]);
+    expect(L.laterInSeries(S.state.items.get(n)!)).toBe(true);
+    const p = S.createProject({ title: 'P' });
+    const r = S.capture('R', { list: 'next', projectId: p, repeat: W(0), due: d(0) });
+    S.completeProject(p, true);
+    expect([...S.state.items.values()].filter((i) => i.series === r)).toEqual([]);
+  });
+  test('ungültige Regel wiederholt nicht; Satz zur Regel', () => {
+    const id = S.capture('x', { list: 'next', repeat: { kind: 'week', days: [] } as any, due: d(0) });
+    expect(S.completeItem(id)).toBeNull();
+    expect(L.repeatText(W(0, 2, 4))).toBe('Jeden Mo, Mi und Fr');
+    expect(L.repeatText(W(6))).toBe('Jeden So');
+    expect(L.repeatText({ kind: 'month', day: 25 })).toBe('Jeden Monat am 25.');
+    expect(L.repeatText({ kind: 'year', month: 10, day: 22 })).toMatch(/^Jedes Jahr am 22\. Okt/);
+  });
+});

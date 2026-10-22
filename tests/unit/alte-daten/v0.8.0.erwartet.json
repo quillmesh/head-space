@@ -13,6 +13,8 @@
    "prevList": null,
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "27250129-8d94-4d2d-a23f-b59c328db1ea",
    "created": 1791727362823,
    "deleted": true
@@ -30,6 +32,8 @@
    "prevList": null,
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "39a01a08-3217-402b-a420-6a35cbdac2d6",
    "created": 1791727362551
   },
@@ -46,6 +50,8 @@
    "prevList": "inbox",
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "4877f22a-7bd0-4f64-9439-5790eeb654b2",
    "created": 1791727362842,
    "deleted": true
@@ -63,6 +69,8 @@
    "prevList": null,
    "order": 2000,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "616e0efa-3de7-4037-852a-307e3fcace9a",
    "created": 1791727364201
   },
@@ -79,6 +87,8 @@
    "prevList": null,
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "650861e5-979a-4cde-80d9-29b303b61f7a",
    "created": 1791727362551
   },
@@ -95,6 +105,8 @@
    "prevList": null,
    "order": 1000,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "7e5dd5c2-57e7-4d2d-8776-7ca4f4582e31",
    "created": 1791727364149
   },
@@ -111,6 +123,8 @@
    "prevList": null,
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "8b50ffbd-8e66-4ed8-9c84-92b08a12c361",
    "created": 1791727362551
   },
@@ -127,6 +141,8 @@
    "prevList": null,
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "a668e637-b439-410e-9355-3d72fcad5b7c",
    "created": 1791727362783
   },
@@ -143,6 +159,8 @@
    "prevList": null,
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "a77f7451-8a2a-4b16-b91b-eb99f385adb3",
    "created": 1791727362551
   },
@@ -159,6 +177,8 @@
    "prevList": null,
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "c421909c-3577-4cc7-a1cc-51acb81706ba",
    "created": 1791727362551
   },
@@ -175,6 +195,8 @@
    "prevList": null,
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "ccd57d40-8803-45ae-a8ba-b9b21dc20fbd",
    "created": 1791727362551
   },
@@ -191,6 +213,8 @@
    "prevList": "next",
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "d8b21ba2-1027-4426-9069-5690444c0356",
    "created": 1791727362802
   },
@@ -207,6 +231,8 @@
    "prevList": null,
    "order": 3000,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "efccff82-af1f-46f4-9304-ea814971f2fa",
    "created": 1791727364183
   }
@@ -220,6 +246,7 @@
    "completed": null,
    "sequential": false,
    "color": null,
+   "droppedAt": null,
    "id": "9eee4b52-5c69-457f-b14b-48e83e757ee9",
    "created": 1791727362550
   },
@@ -231,6 +258,7 @@
    "completed": null,
    "sequential": true,
    "color": null,
+   "droppedAt": null,
    "id": "fa453770-b43b-4a07-a989-99f6f11aa5a3",
    "created": 1791727364149,
    "deleted": true

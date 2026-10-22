@@ -13,6 +13,8 @@
    "prevList": null,
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "1c04f279-6863-4df3-bfa5-a1e336654f76",
    "created": 1791841526018
   },
@@ -29,6 +31,8 @@
    "prevList": "inbox",
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "21a31b84-5517-401d-9808-d70eabc16f8f",
    "created": 1791841526053,
    "deleted": true
@@ -46,6 +50,8 @@
    "prevList": null,
    "order": 2000,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "2f3821ec-8c40-4a77-b0af-fe24531d96bd",
    "created": 1791841527382
   },
@@ -62,6 +68,8 @@
    "prevList": null,
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "4ff078ec-93d4-479b-ad6e-653eaaa685cb",
    "created": 1791841525790
   },
@@ -78,6 +86,8 @@
    "prevList": null,
    "order": 1000,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "60759adb-98a6-4e3a-a4a1-83da0d9d8ca0",
    "created": 1791841527347
   },
@@ -94,6 +104,8 @@
    "prevList": null,
    "order": 3000,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "687e843a-a25b-4017-8a06-0f9285da72f8",
    "created": 1791841527368
   },
@@ -110,6 +122,8 @@
    "prevList": null,
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "79b7fc5b-ddce-43af-a35b-1c68bab36890",
    "created": 1791841525790
   },
@@ -126,6 +140,8 @@
    "prevList": null,
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "7c2f8e4f-747e-4903-910e-bddab0895db9",
    "created": 1791841525790
   },
@@ -142,6 +158,8 @@
    "prevList": "inbox",
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "9cbdcb2b-6860-4b6f-80d7-831270ef2f06",
    "created": 1791841526071,
    "deleted": true
@@ -159,6 +177,8 @@
    "prevList": null,
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "c679c169-b429-4d70-8a6a-ba100a603370",
    "created": 1791841525790
   },
@@ -175,6 +195,8 @@
    "prevList": null,
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "d30d1c88-4da7-44bc-89ea-d2a1446513a1",
    "created": 1791841525790
   },
@@ -191,6 +213,8 @@
    "prevList": "next",
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "f339a497-326c-4a24-8fdb-80ef00843e04",
    "created": 1791841526036
   },
@@ -207,6 +231,8 @@
    "prevList": null,
    "order": null,
    "subtasks": [],
+   "repeat": null,
+   "series": null,
    "id": "f37b3072-91a0-4d48-a39c-b475d86a7925",
    "created": 1791841525790
   }
@@ -220,6 +246,7 @@
    "completed": null,
    "sequential": false,
    "color": null,
+   "droppedAt": null,
    "id": "283ce986-09ca-45b9-aee6-cb4b354c0d8a",
    "created": 1791841527347
   },
@@ -231,6 +258,7 @@
    "completed": null,
    "sequential": false,
    "color": null,
+   "droppedAt": null,
    "id": "cae49144-a15d-42e1-b673-183429c81299",
    "created": 1791841525789
   }

@@ -25,10 +25,10 @@ function rng(seed: number) {
 // So bleibt ein Ablauf gültig, wenn beim Verkleinern Schritte wegfallen.
 type Dev = 'A' | 'B';
 type Step =
-  | { dev: Dev; op: 'capture' | 'title' | 'notes' | 'due' | 'complete' | 'restore' | 'trash' | 'empty' | 'project' | 'step' | 'move' | 'delproject' | 'sub' | 'subdone' | 'color' | 'closeproject' | 'reopen'; k: number; m: number; dt: number }
+  | { dev: Dev; op: 'capture' | 'title' | 'notes' | 'due' | 'complete' | 'restore' | 'trash' | 'empty' | 'project' | 'step' | 'move' | 'delproject' | 'sub' | 'subdone' | 'color' | 'closeproject' | 'reopen' | 'repeat'; k: number; m: number; dt: number }
   | { op: 'sync'; dir: 'AB' | 'BA' | 'both' };
 
-const DEV_OPS = ['capture', 'capture', 'title', 'notes', 'due', 'complete', 'restore', 'trash', 'trash', 'empty', 'project', 'step', 'step', 'move', 'delproject', 'sub', 'sub', 'subdone', 'color', 'closeproject', 'reopen'] as const;
+const DEV_OPS = ['capture', 'capture', 'title', 'notes', 'due', 'complete', 'restore', 'trash', 'trash', 'empty', 'project', 'step', 'step', 'move', 'delproject', 'sub', 'sub', 'subdone', 'color', 'closeproject', 'reopen', 'repeat', 'repeat', 'complete'] as const;
 
 function plan(seed: number, length: number): Step[] {
   const r = rng(seed);
@@ -91,6 +91,8 @@ async function act(d: Device, s: Extract<Step, { dev: Dev }>) {
       break;
     }
     case 'color': if (pr) S.patchProject(pr.id, { color: ['wein', 'marine', 'minze', null][s.m % 4] }); break;
+    // 0.14: Wiederholung setzen; „complete“ legt dann auf beiden Geräten dieselbe nächste an (feste ID)
+    case 'repeat': if (it && it.list !== 'done' && it.list !== 'trash') S.patchItem(it.id, { list: 'next', repeat: s.m % 2 ? { kind: 'week', days: [s.m % 7, (s.m + 3) % 7] } : { kind: 'month', day: 1 + (s.m % 31) }, due: `2026-10-${String(10 + (s.m % 20)).padStart(2, '0')}` }); break;
     case 'closeproject': if (pr) S.completeProject(pr.id, s.m % 2 === 0); break;
     case 'reopen': {
       const done = [...S.state.items.values()].filter((i) => !i.deleted && i.list === 'done' && i.projectId && S.state.projects.get(i.projectId)?.status === 'done');

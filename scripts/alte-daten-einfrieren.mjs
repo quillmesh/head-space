@@ -130,6 +130,14 @@ try {
     await page.click('[data-step=yes]'); await page.click('[data-action=clarify-goal][data-val=next]');
     await page.click('.ctx-chip[data-ctx="@Telefon"]'); await page.click('form[data-form=clarify-yes] button[type=submit]');
   });
+  // ab 0.14: Wiederholung beim Klären setzen und einmal erledigen (legt die nächste an)
+  await step('Wiederholung: wöchentlich setzen und erledigen (ab 0.14)', async () => {
+    await go('inbox'); await page.fill('#capture-input', 'Abfall rausstellen'); await page.keyboard.press('Enter');
+    await page.locator('#main li.row', { has: page.locator('.row-title', { hasText: 'Abfall' }) }).locator('[data-action=clarify]').click();
+    await page.click('[data-step=yes]'); await page.click('[data-action=clarify-goal][data-val=next]');
+    await page.click('[data-action=repeat-toggle]'); await page.click('form[data-form=clarify-yes] button[type=submit]');
+    await go('next'); await page.locator('#main li.row', { has: page.locator('.row-title', { hasText: 'Abfall' }) }).locator('.check').click();
+  });
   await page.evaluate(() => window.kopfFrei?.whenSaved?.());
   console.log(`${version}: ${aktionen.join(' · ')}`);
 
